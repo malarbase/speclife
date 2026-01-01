@@ -22,6 +22,9 @@ export interface GitHubAdapter {
   /** Get pull request by number */
   getPullRequest(number: number): Promise<PullRequest>;
   
+  /** Get pull request diff */
+  getPullRequestDiff(number: number): Promise<string>;
+  
   /** Merge pull request */
   mergePullRequest(number: number, method?: 'merge' | 'squash' | 'rebase'): Promise<void>;
   
@@ -118,6 +121,20 @@ export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapte
         mergeable: data.mergeable,
         draft: data.draft ?? false,
       };
+    },
+    
+    async getPullRequestDiff(number: number): Promise<string> {
+      const { data } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: number,
+        mediaType: {
+          format: 'diff',
+        },
+      });
+      
+      // When requesting diff format, data is returned as a string
+      return data as unknown as string;
     },
     
     async mergePullRequest(number: number, method: 'merge' | 'squash' | 'rebase' = 'merge'): Promise<void> {
