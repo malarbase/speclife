@@ -4,6 +4,26 @@
 
 import { cosmiconfig } from 'cosmiconfig';
 import { SpecLifeError, ErrorCodes } from './types.js';
+import type { BootstrapStrategy } from './adapters/environment-adapter.js';
+
+/** Per-environment bootstrap configuration */
+export interface EnvironmentBootstrapConfig {
+  /** Override strategy for this environment */
+  strategy?: BootstrapStrategy;
+  /** Whether to enable this environment (default: true) */
+  enabled?: boolean;
+}
+
+/** Worktree configuration */
+export interface WorktreeConfig {
+  /** Bootstrap configuration for environment setup */
+  bootstrap: {
+    /** Default bootstrap strategy (default: "symlink") */
+    strategy: BootstrapStrategy;
+    /** Per-environment overrides */
+    environments?: Record<string, EnvironmentBootstrapConfig>;
+  };
+}
 
 /** SpecLife configuration schema */
 export interface SpecLifeConfig {
@@ -31,6 +51,9 @@ export interface SpecLifeConfig {
   
   /** Files to always include in AI context */
   contextFiles?: string[];
+  
+  /** Worktree configuration */
+  worktree: WorktreeConfig;
 }
 
 /** Default configuration values */
@@ -44,6 +67,11 @@ const defaults: Partial<SpecLifeConfig> = {
     baseBranch: 'main',
   },
   testCommand: 'npm test',
+  worktree: {
+    bootstrap: {
+      strategy: 'symlink',
+    },
+  },
 };
 
 /**
@@ -79,6 +107,14 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<SpecLifeC
       ...defaults.github,
       ...fileConfig.github,
     },
+    worktree: {
+      ...defaults.worktree,
+      ...fileConfig.worktree,
+      bootstrap: {
+        ...defaults.worktree?.bootstrap,
+        ...fileConfig.worktree?.bootstrap,
+      },
+    },
   } as SpecLifeConfig;
   
   // Apply environment variable overrides
@@ -94,6 +130,9 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<SpecLifeC
   
   return config;
 }
+
+/** Valid bootstrap strategies */
+const validBootstrapStrategies: BootstrapStrategy[] = ['symlink', 'install', 'none'];
 
 /**
  * Validate configuration
@@ -113,6 +152,30 @@ function validateConfig(config: SpecLifeConfig): void {
       `Invalid aiProvider: ${config.aiProvider}. Must be one of: claude, openai, gemini`,
       { field: 'aiProvider', value: config.aiProvider }
     );
+  }
+  
+  // Validate worktree.bootstrap.strategy
+  if (config.worktree?.bootstrap?.strategy) {
+    if (!validBootstrapStrategies.includes(config.worktree.bootstrap.strategy)) {
+      throw new SpecLifeError(
+        ErrorCodes.CONFIG_INVALID,
+        `Invalid worktree.bootstrap.strategy: ${config.worktree.bootstrap.strategy}. Must be one of: ${validBootstrapStrategies.join(', ')}`,
+        { field: 'worktree.bootstrap.strategy', value: config.worktree.bootstrap.strategy }
+      );
+    }
+  }
+  
+  // Validate per-environment strategies
+  if (config.worktree?.bootstrap?.environments) {
+    for (const [envName, envConfig] of Object.entries(config.worktree.bootstrap.environments)) {
+      if (envConfig.strategy && !validBootstrapStrategies.includes(envConfig.strategy)) {
+        throw new SpecLifeError(
+          ErrorCodes.CONFIG_INVALID,
+          `Invalid worktree.bootstrap.environments.${envName}.strategy: ${envConfig.strategy}. Must be one of: ${validBootstrapStrategies.join(', ')}`,
+          { field: `worktree.bootstrap.environments.${envName}.strategy`, value: envConfig.strategy }
+        );
+      }
+    }
   }
 }
 

@@ -8,7 +8,12 @@
 export * from './types.js';
 
 // Re-export config
-export { loadConfig, type SpecLifeConfig } from './config.js';
+export {
+  loadConfig,
+  type SpecLifeConfig,
+  type WorktreeConfig,
+  type EnvironmentBootstrapConfig,
+} from './config.js';
 
 // Re-export adapters
 export * from './adapters/index.js';
