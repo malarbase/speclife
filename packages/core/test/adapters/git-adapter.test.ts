@@ -157,14 +157,17 @@ describe('GitAdapter', () => {
   });
 
   describe('deleteBranch', () => {
-    it('deletes a merged branch', async () => {
+    it('deletes a branch', async () => {
       const adapter = createGitAdapter(tempDir);
-      await adapter.createBranch('to-delete');
-      await adapter.checkout(await adapter.getCurrentBranch() === 'to-delete' ? 'main' : 'to-delete');
       
-      // Go back to main/master to delete
-      const branches = await adapter.branchExists('main') ? 'main' : 'master';
-      await adapter.checkout(branches);
+      // Remember original branch before creating new one
+      const originalBranch = await adapter.getCurrentBranch();
+      
+      // Create a new branch (this also checks it out)
+      await adapter.createBranch('to-delete');
+      
+      // Go back to original branch so we can delete the new one
+      await adapter.checkout(originalBranch);
 
       await adapter.deleteBranch('to-delete', true);
 
