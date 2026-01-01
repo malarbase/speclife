@@ -26,7 +26,11 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          # Build core first (other packages depend on it)
+          npm run build -w @speclife/core
+          # Then build remaining packages
+          npm run build -w @speclife/cli -w @speclife/mcp-server
 
       - name: Run tests
         run: npm test --if-present

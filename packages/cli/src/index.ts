@@ -13,6 +13,7 @@ import {
   createOpenSpecAdapter, 
   initWorkflow,
   statusWorkflow,
+  type ProgressEvent,
 } from '@speclife/core';
 
 const program = new Command();
@@ -43,7 +44,7 @@ program
           dryRun: options.dryRun,
         },
         { git, openspec, config },
-        (event) => console.log(`  ${event.message}`)
+        (event: ProgressEvent) => console.log(`  ${event.message}`)
       );
       
       if (result.worktreePath) {
