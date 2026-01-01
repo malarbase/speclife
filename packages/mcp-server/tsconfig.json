@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "composite": true
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@speclife/core": ["../core/src/index.ts"]
+    }
   },
   "references": [
     { "path": "../core" }

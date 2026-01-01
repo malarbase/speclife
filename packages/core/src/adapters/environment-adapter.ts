@@ -5,8 +5,8 @@
  * ensuring the worktree is ready to build without manual intervention.
  */
 
-import { existsSync, lstatSync, symlinkSync, rmSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, lstatSync, symlinkSync, rmSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { join, dirname, relative } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { type ProgressCallback } from '../types.js';
 
@@ -37,6 +37,34 @@ export interface BootstrapResult {
   message: string;
   /** Path that was set up (if applicable) */
   path?: string;
+  /** Whether tsconfig was patched for monorepo support */
+  tsconfigPatched?: boolean;
+  /** Detected monorepo info */
+  monorepo?: MonorepoInfo;
+}
+
+/** Monorepo information */
+export interface MonorepoInfo {
+  /** Whether this is a monorepo */
+  isMonorepo: boolean;
+  /** Type of monorepo setup */
+  type?: 'npm-workspaces' | 'yarn-workspaces' | 'pnpm-workspaces' | 'lerna';
+  /** Root package.json path */
+  rootPackageJson: string;
+  /** List of workspace package paths */
+  workspacePackages: WorkspacePackage[];
+}
+
+/** A workspace package in a monorepo */
+export interface WorkspacePackage {
+  /** Package name (from package.json) */
+  name: string;
+  /** Relative path from project root */
+  path: string;
+  /** Absolute path */
+  absolutePath: string;
+  /** Entry point for TypeScript (src/index.ts or similar) */
+  entryPoint?: string;
 }
 
 /** Environment adapter interface */
@@ -199,6 +227,9 @@ export function createEnvironmentRegistry(
  * Node.js environment adapter
  * Detects: package.json, package-lock.json, yarn.lock, pnpm-lock.yaml
  * Bootstraps: symlinks node_modules from source to worktree
+ * 
+ * For monorepos: Detects workspace packages and auto-patches tsconfig.json
+ * with paths mappings to ensure TypeScript resolves to worktree source.
  */
 export function createNodejsAdapter(): EnvironmentAdapter {
   return {
@@ -248,12 +279,16 @@ export function createNodejsAdapter(): EnvironmentAdapter {
       const sourceModules = join(sourceRoot, 'node_modules');
       const targetModules = join(worktreePath, 'node_modules');
       
+      // Detect monorepo structure
+      const monorepo = detectMonorepo(sourceRoot);
+      
       if (strategy === 'none') {
         return {
           environment: 'nodejs',
           strategy: 'none',
           success: true,
           message: 'Node.js bootstrap skipped (strategy: none)',
+          monorepo,
         };
       }
       
@@ -264,6 +299,7 @@ export function createNodejsAdapter(): EnvironmentAdapter {
           strategy,
           success: false,
           message: 'Source node_modules not found. Run npm install in the main project first.',
+          monorepo,
         };
       }
       
@@ -285,12 +321,36 @@ export function createNodejsAdapter(): EnvironmentAdapter {
           data: { source: sourceModules, target: targetModules },
         });
         
+        // For monorepos with symlink strategy, patch tsconfig to fix local package resolution
+        let tsconfigPatched = false;
+        if (monorepo.isMonorepo && monorepo.workspacePackages.length > 0) {
+          onProgress?.({
+            type: 'step_completed',
+            message: `Detected ${monorepo.type} monorepo with ${monorepo.workspacePackages.length} local packages`,
+            data: { monorepo },
+          });
+          
+          tsconfigPatched = patchTsconfigForMonorepo(worktreePath, monorepo, onProgress);
+          
+          if (tsconfigPatched) {
+            onProgress?.({
+              type: 'step_completed',
+              message: 'Patched tsconfig.json files with local package paths',
+              data: { packages: monorepo.workspacePackages.map(p => p.name) },
+            });
+          }
+        }
+        
         return {
           environment: 'nodejs',
           strategy: 'symlink',
           success: true,
-          message: `Symlinked node_modules from ${sourceRoot}`,
+          message: tsconfigPatched 
+            ? `Symlinked node_modules and patched tsconfig for ${monorepo.workspacePackages.length} local packages`
+            : `Symlinked node_modules from ${sourceRoot}`,
           path: targetModules,
+          tsconfigPatched,
+          monorepo,
         };
       }
       
@@ -302,6 +362,7 @@ export function createNodejsAdapter(): EnvironmentAdapter {
         strategy: 'install',
         success: false,
         message: 'Install strategy not yet implemented. Use symlink for now.',
+        monorepo,
       };
     },
     
@@ -551,5 +612,339 @@ export function createDefaultEnvironmentRegistry(): EnvironmentRegistry {
     createGoAdapter(),
     createRustAdapter(),
   ]);
+}
+
+// ============================================================================
+// Monorepo Detection and TypeScript Patching
+// ============================================================================
+
+/**
+ * Detect if a project is a monorepo and identify workspace packages
+ */
+export function detectMonorepo(projectRoot: string): MonorepoInfo {
+  const packageJsonPath = join(projectRoot, 'package.json');
+  
+  if (!existsSync(packageJsonPath)) {
+    return { isMonorepo: false, rootPackageJson: packageJsonPath, workspacePackages: [] };
+  }
+  
+  try {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    
+    // Check for npm/yarn workspaces
+    if (packageJson.workspaces) {
+      const workspacePatterns = Array.isArray(packageJson.workspaces) 
+        ? packageJson.workspaces 
+        : packageJson.workspaces.packages ?? [];
+      
+      const packages = resolveWorkspacePackages(projectRoot, workspacePatterns);
+      
+      return {
+        isMonorepo: true,
+        type: 'npm-workspaces',
+        rootPackageJson: packageJsonPath,
+        workspacePackages: packages,
+      };
+    }
+    
+    // Check for pnpm workspaces
+    const pnpmWorkspacePath = join(projectRoot, 'pnpm-workspace.yaml');
+    if (existsSync(pnpmWorkspacePath)) {
+      // Simple YAML parsing for packages array
+      const content = readFileSync(pnpmWorkspacePath, 'utf-8');
+      const patterns = parsePnpmWorkspaceYaml(content);
+      const packages = resolveWorkspacePackages(projectRoot, patterns);
+      
+      return {
+        isMonorepo: true,
+        type: 'pnpm-workspaces',
+        rootPackageJson: packageJsonPath,
+        workspacePackages: packages,
+      };
+    }
+    
+    // Check for lerna
+    const lernaPath = join(projectRoot, 'lerna.json');
+    if (existsSync(lernaPath)) {
+      const lernaConfig = JSON.parse(readFileSync(lernaPath, 'utf-8'));
+      const patterns = lernaConfig.packages ?? ['packages/*'];
+      const packages = resolveWorkspacePackages(projectRoot, patterns);
+      
+      return {
+        isMonorepo: true,
+        type: 'lerna',
+        rootPackageJson: packageJsonPath,
+        workspacePackages: packages,
+      };
+    }
+  } catch {
+    // Ignore JSON parse errors
+  }
+  
+  return { isMonorepo: false, rootPackageJson: packageJsonPath, workspacePackages: [] };
+}
+
+/**
+ * Parse pnpm-workspace.yaml to extract package patterns
+ * Simple parser that handles common cases
+ */
+function parsePnpmWorkspaceYaml(content: string): string[] {
+  const patterns: string[] = [];
+  const lines = content.split('\n');
+  let inPackages = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    if (trimmed === 'packages:') {
+      inPackages = true;
+      continue;
+    }
+    
+    if (inPackages) {
+      if (trimmed.startsWith('-')) {
+        // Extract pattern from "- packages/*" or "- 'packages/*'"
+        let pattern = trimmed.slice(1).trim();
+        pattern = pattern.replace(/^['"]|['"]$/g, '');
+        if (pattern) {
+          patterns.push(pattern);
+        }
+      } else if (!trimmed.startsWith('#') && trimmed.length > 0 && !trimmed.startsWith('-')) {
+        // End of packages section
+        break;
+      }
+    }
+  }
+  
+  return patterns;
+}
+
+/**
+ * Resolve workspace patterns to actual package directories
+ */
+function resolveWorkspacePackages(projectRoot: string, patterns: string[]): WorkspacePackage[] {
+  const packages: WorkspacePackage[] = [];
+  
+  for (const pattern of patterns) {
+    // Handle simple glob patterns like "packages/*"
+    if (pattern.endsWith('/*')) {
+      const baseDir = pattern.slice(0, -2);
+      const fullPath = join(projectRoot, baseDir);
+      
+      if (existsSync(fullPath)) {
+        try {
+          const entries = readdirSync(fullPath, { withFileTypes: true });
+          
+          for (const entry of entries) {
+            if (entry.isDirectory()) {
+              const pkgPath = join(fullPath, entry.name);
+              const pkgJsonPath = join(pkgPath, 'package.json');
+              
+              if (existsSync(pkgJsonPath)) {
+                try {
+                  const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8'));
+                  const relativePath = relative(projectRoot, pkgPath);
+                  
+                  // Find TypeScript entry point
+                  const entryPoint = findTypeScriptEntryPoint(pkgPath);
+                  
+                  packages.push({
+                    name: pkgJson.name,
+                    path: relativePath,
+                    absolutePath: pkgPath,
+                    entryPoint,
+                  });
+                } catch {
+                  // Skip packages with invalid package.json
+                }
+              }
+            }
+          }
+        } catch {
+          // Ignore directory read errors
+        }
+      }
+    } else if (!pattern.includes('*')) {
+      // Direct path like "packages/core"
+      const fullPath = join(projectRoot, pattern);
+      const pkgJsonPath = join(fullPath, 'package.json');
+      
+      if (existsSync(pkgJsonPath)) {
+        try {
+          const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8'));
+          const entryPoint = findTypeScriptEntryPoint(fullPath);
+          
+          packages.push({
+            name: pkgJson.name,
+            path: pattern,
+            absolutePath: fullPath,
+            entryPoint,
+          });
+        } catch {
+          // Skip packages with invalid package.json
+        }
+      }
+    }
+  }
+  
+  return packages;
+}
+
+/**
+ * Find the TypeScript entry point for a package
+ */
+function findTypeScriptEntryPoint(packagePath: string): string | undefined {
+  // Common entry points in order of preference
+  const candidates = [
+    'src/index.ts',
+    'src/index.tsx',
+    'lib/index.ts',
+    'index.ts',
+  ];
+  
+  for (const candidate of candidates) {
+    if (existsSync(join(packagePath, candidate))) {
+      return candidate;
+    }
+  }
+  
+  return undefined;
+}
+
+/**
+ * Patch tsconfig files in a worktree to add paths for local workspace packages
+ * This ensures TypeScript resolves to worktree source, not the symlinked main repo
+ */
+export function patchTsconfigForMonorepo(
+  worktreePath: string,
+  monorepo: MonorepoInfo,
+  onProgress?: ProgressCallback
+): boolean {
+  if (!monorepo.isMonorepo || monorepo.workspacePackages.length === 0) {
+    return false;
+  }
+  
+  let patched = false;
+  
+  // Find all tsconfig files in the worktree
+  const tsconfigPaths = findTsconfigFiles(worktreePath);
+  
+  for (const tsconfigPath of tsconfigPaths) {
+    try {
+      const pathedPackages = patchSingleTsconfig(tsconfigPath, worktreePath, monorepo);
+      if (pathedPackages > 0) {
+        patched = true;
+        onProgress?.({
+          type: 'file_written',
+          message: `Patched ${tsconfigPath} with ${pathedPackages} local package paths`,
+          data: { tsconfigPath, packageCount: pathedPackages },
+        });
+      }
+    } catch {
+      // Skip files that can't be patched
+    }
+  }
+  
+  return patched;
+}
+
+/**
+ * Find all tsconfig.json files in a directory tree
+ */
+function findTsconfigFiles(rootPath: string): string[] {
+  const tsconfigs: string[] = [];
+  
+  function scan(dirPath: string, depth: number): void {
+    if (depth > 5) return; // Limit depth to avoid traversing too deep
+    
+    try {
+      const entries = readdirSync(dirPath, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = join(dirPath, entry.name);
+        
+        if (entry.isFile() && entry.name === 'tsconfig.json') {
+          tsconfigs.push(fullPath);
+        } else if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+          scan(fullPath, depth + 1);
+        }
+      }
+    } catch {
+      // Ignore directory read errors
+    }
+  }
+  
+  scan(rootPath, 0);
+  return tsconfigs;
+}
+
+/**
+ * Patch a single tsconfig.json file with paths for local packages
+ */
+function patchSingleTsconfig(
+  tsconfigPath: string,
+  worktreePath: string,
+  monorepo: MonorepoInfo
+): number {
+  const content = readFileSync(tsconfigPath, 'utf-8');
+  
+  // Parse tsconfig (handle comments by stripping them)
+  const jsonContent = stripJsonComments(content);
+  const tsconfig = JSON.parse(jsonContent);
+  
+  // Ensure compilerOptions exists
+  if (!tsconfig.compilerOptions) {
+    tsconfig.compilerOptions = {};
+  }
+  
+  // Calculate relative path from tsconfig location to worktree root
+  const tsconfigDir = dirname(tsconfigPath);
+  const relativeToRoot = relative(tsconfigDir, worktreePath);
+  
+  // Set baseUrl if not already set
+  if (!tsconfig.compilerOptions.baseUrl) {
+    tsconfig.compilerOptions.baseUrl = '.';
+  }
+  
+  // Build paths mapping for local packages
+  if (!tsconfig.compilerOptions.paths) {
+    tsconfig.compilerOptions.paths = {};
+  }
+  
+  let addedCount = 0;
+  
+  for (const pkg of monorepo.workspacePackages) {
+    // Skip if path already exists for this package
+    if (tsconfig.compilerOptions.paths[pkg.name]) {
+      continue;
+    }
+    
+    // Calculate relative path from tsconfig to package source
+    const packageSrcPath = pkg.entryPoint
+      ? join(relativeToRoot, pkg.path, pkg.entryPoint)
+      : join(relativeToRoot, pkg.path, 'src/index.ts');
+    
+    // Add path mapping
+    tsconfig.compilerOptions.paths[pkg.name] = [packageSrcPath];
+    addedCount++;
+  }
+  
+  if (addedCount > 0) {
+    // Write back with pretty formatting
+    writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2) + '\n', 'utf-8');
+  }
+  
+  return addedCount;
+}
+
+/**
+ * Strip JSON comments for parsing (single-line // and multi-line block comments)
+ */
+function stripJsonComments(content: string): string {
+  // Remove single-line comments
+  let result = content.replace(/\/\/.*$/gm, '');
+  // Remove multi-line comments
+  result = result.replace(/\/\*[\s\S]*?\*\//g, '');
+  return result;
 }
 

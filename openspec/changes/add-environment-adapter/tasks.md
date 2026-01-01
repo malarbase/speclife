@@ -23,7 +23,16 @@
 ## 5. Cleanup Integration
 - [x] 5.1 Call adapter cleanup before worktree removal (in future merge workflow)
 
-## 6. Verification
-- [x] 6.1 Build passes (`npm run build`)
-- [x] 6.2 Test: Node.js project symlinks node_modules correctly
-- [x] 6.3 Test: Multi-language project bootstraps all environments
+## 6. Monorepo Support
+- [x] 6.1 Detect monorepo structure (workspaces in package.json, lerna.json, pnpm-workspace.yaml)
+- [x] 6.2 Identify local workspace packages that would be affected by symlink resolution
+- [x] 6.3 ~~Default to `install` strategy for detected monorepos~~ (Changed: auto-patch instead)
+- [x] 6.4 When using `symlink` in monorepo: auto-patch tsconfig.json with `paths` mappings
+- [x] 6.5 Support `baseUrl` and `paths` injection for each package's tsconfig
+
+## 7. Verification
+- [x] 7.1 Build passes (`npm run build`)
+- [ ] 7.2 Test: Node.js project symlinks node_modules correctly
+- [ ] 7.3 Test: Multi-language project bootstraps all environments
+- [ ] 7.4 Test: TypeScript monorepo with symlink strategy resolves local packages correctly
+- [ ] 7.5 Test: TypeScript monorepo with install strategy works without patching

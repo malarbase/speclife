@@ -1,8 +1,0 @@
-{
-    "mcpServers": {
-      "speclife": {
-        "command": "node",
-        "args": ["./packages/mcp-server/dist/index.js"]
-      }
-    }
-  }

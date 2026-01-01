@@ -13,12 +13,16 @@ export {
   type BootstrapStrategy,
   type DetectionResult,
   type BootstrapResult,
+  type MonorepoInfo,
+  type WorkspacePackage,
   createEnvironmentRegistry,
   createDefaultEnvironmentRegistry,
   createNodejsAdapter,
   createPythonAdapter,
   createGoAdapter,
   createRustAdapter,
+  detectMonorepo,
+  patchTsconfigForMonorepo,
 } from './environment-adapter.js';
 
 // AI adapter will be added in Phase 3
