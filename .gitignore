@@ -5,6 +5,12 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Compiled files in src (shouldn't be there)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+
 # IDE
 .idea/
 .vscode/
@@ -33,8 +39,6 @@ temp/
 
 # Worktrees
 worktrees/
-# Cursor
-.cursor/
 
 # Cursor
 .cursor/
