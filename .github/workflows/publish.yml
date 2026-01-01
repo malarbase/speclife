@@ -26,10 +26,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-
-      - name: Configure npm registry
-        run: npm config set registry https://registry.npmjs.org/
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install dependencies
         run: npm ci
@@ -60,14 +60,20 @@ jobs:
       - name: Publish @speclife/core
         if: steps.version.outputs.changed == 'true'
         run: npm publish -w packages/core --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @speclife/cli
         if: steps.version.outputs.changed == 'true'
         run: npm publish -w packages/cli --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @speclife/mcp-server
         if: steps.version.outputs.changed == 'true'
         run: npm publish -w packages/mcp-server --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create Git tag
         if: steps.version.outputs.changed == 'true'
