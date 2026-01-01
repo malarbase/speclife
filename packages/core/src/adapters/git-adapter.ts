@@ -2,7 +2,7 @@
  * Git adapter using simple-git
  */
 
-import simpleGit, { type SimpleGit } from 'simple-git';
+import { simpleGit, type SimpleGit } from 'simple-git';
 import { type GitStatus } from '../types.js';
 
 /** Git operations interface */

@@ -80,7 +80,7 @@ export async function statusWorkflow(
 /**
  * Determine the change state based on progress
  */
-function determineState(change: Change, completed: number, total: number): ChangeState {
+function determineState(_change: Change, completed: number, total: number): ChangeState {
   // TODO: Check for PR existence to determine 'submitted' state
   // TODO: Check for archived status to determine 'merged' state
   

@@ -60,7 +60,7 @@ export function registerStatusTool(server: McpServer): void {
           `# Change: ${change.id}`,
           "",
           `**State:** ${change.state}`,
-          `**Branch:** ${change.branch}${onBranch ? " (current)" : ""}`,
+          `**Branch:** ${change.branch}${onBranch ? " (current)" : ` (you're on ${currentBranch})`}`,
           `**Tasks:** ${taskSummary.completed}/${taskSummary.total} (${taskSummary.percentage}%)`,
           "",
           "## Proposal Summary",

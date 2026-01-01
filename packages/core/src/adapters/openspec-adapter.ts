@@ -3,7 +3,7 @@
  */
 
 import { readFile, writeFile, mkdir, readdir, rename, access } from 'fs/promises';
-import { join, dirname } from 'path';
+import { join } from 'path';
 import { type Change, type ChangeProposal, type ChangeTask, SpecLifeError, ErrorCodes } from '../types.js';
 
 /** OpenSpec operations interface */
@@ -157,8 +157,7 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-function generateProposal(changeId: string, description?: string): string {
-  const title = changeId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+function generateProposal(_changeId: string, description?: string): string {
   return `## Why
 ${description ?? '[Describe the problem or opportunity]'}
 

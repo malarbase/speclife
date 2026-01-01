@@ -1,0 +1,19 @@
+# SpecLife configuration for bootstrapping itself
+specDir: openspec
+aiProvider: claude
+aiModel: claude-sonnet-4-20250514
+
+github:
+  owner: malarbase
+  repo: speclife
+  baseBranch: main
+
+testCommand: npm test
+buildCommand: npm run build
+
+# Files always included in AI context
+contextFiles:
+  - openspec/project.md
+  - openspec/AGENTS.md
+  - README.md
+

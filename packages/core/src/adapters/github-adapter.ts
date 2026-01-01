@@ -95,7 +95,7 @@ export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapte
         url: pr.html_url,
         title: pr.title,
         state: pr.state as 'open' | 'closed',
-        mergeable: pr.mergeable,
+        mergeable: null, // List endpoint doesn't return mergeable; use getPullRequest for full details
         draft: pr.draft ?? false,
       };
     },
