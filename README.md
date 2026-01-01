@@ -52,7 +52,7 @@ AI: [calls speclife_merge]
 
 ```bash
 # Clone and install
-git clone https://github.com/you/speclife.git
+git clone https://github.com/malarbase/speclife.git
 cd speclife
 npm install
 
