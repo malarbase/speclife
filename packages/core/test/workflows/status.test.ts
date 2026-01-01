@@ -2,7 +2,7 @@
  * Status workflow tests
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { statusWorkflow } from '../../src/workflows/status.js';
 import { createOpenSpecAdapter } from '../../src/adapters/openspec-adapter.js';
 import { createGitAdapter } from '../../src/adapters/git-adapter.js';
@@ -42,7 +42,8 @@ describe('statusWorkflow', () => {
         { git, openspec }
       );
 
-      expect(status.change.id).toBe('test-change');
+      expect(status).not.toBeNull();
+      expect(status!.change.id).toBe('test-change');
     });
 
     it('returns null when change does not exist', async () => {
@@ -76,9 +77,10 @@ describe('statusWorkflow', () => {
         { git, openspec }
       );
 
-      expect(status.taskSummary.total).toBe(4);
-      expect(status.taskSummary.completed).toBe(2);
-      expect(status.taskSummary.percentage).toBe(50);
+      expect(status).not.toBeNull();
+      expect(status!.taskSummary.total).toBe(4);
+      expect(status!.taskSummary.completed).toBe(2);
+      expect(status!.taskSummary.percentage).toBe(50);
     });
 
     it('handles change with no tasks', async () => {
@@ -93,8 +95,9 @@ describe('statusWorkflow', () => {
         { git, openspec }
       );
 
-      expect(status.taskSummary.total).toBe(0);
-      expect(status.taskSummary.completed).toBe(0);
+      expect(status).not.toBeNull();
+      expect(status!.taskSummary.total).toBe(0);
+      expect(status!.taskSummary.completed).toBe(0);
     });
   });
 
@@ -112,8 +115,9 @@ describe('statusWorkflow', () => {
         { git, openspec }
       );
 
-      expect(status.currentBranch).toBe('spec/branch-test');
-      expect(status.onBranch).toBe(true);
+      expect(status).not.toBeNull();
+      expect(status!.currentBranch).toBe('spec/branch-test');
+      expect(status!.onBranch).toBe(true);
     });
 
     it('detects when not on the change branch', async () => {
@@ -127,7 +131,8 @@ describe('statusWorkflow', () => {
       );
 
       // We're on main/master, not spec/not-on-branch
-      expect(status.onBranch).toBe(false);
+      expect(status).not.toBeNull();
+      expect(status!.onBranch).toBe(false);
     });
   });
 });
