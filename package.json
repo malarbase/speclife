@@ -1,0 +1,47 @@
+{
+  "name": "speclife",
+  "version": "0.1.0",
+  "description": "Bring specifications to life - MCP server for automated spec-driven development",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "tsc --build",
+    "lint": "eslint packages/*/src/",
+    "clean": "rm -rf packages/*/dist",
+    "mcp:start": "node packages/mcp-server/dist/index.js",
+    "mcp:dev": "npm run build -w packages/core && npm run build -w packages/mcp-server && npm run mcp:start",
+    "cli": "node packages/cli/dist/index.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0",
+    "eslint": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "openspec",
+    "ai",
+    "automation",
+    "spec-driven-development",
+    "claude",
+    "cursor"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
+
