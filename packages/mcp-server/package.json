@@ -1,7 +1,12 @@
 {
   "name": "@speclife/mcp-server",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "MCP server for SpecLife - AI assistant interface",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/malarbase/speclife.git",
+    "directory": "packages/mcp-server"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

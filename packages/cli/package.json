@@ -1,7 +1,12 @@
 {
   "name": "@speclife/cli",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "CLI for SpecLife - for CI/scripts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/malarbase/speclife.git",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

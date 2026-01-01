@@ -1,7 +1,12 @@
 {
   "name": "@speclife/core",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Core library for SpecLife - adapters and workflows",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/malarbase/speclife.git",
+    "directory": "packages/core"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
