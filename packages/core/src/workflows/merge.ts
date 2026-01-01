@@ -3,7 +3,7 @@
  */
 
 import { execa } from 'execa';
-import { type GitAdapter } from '../adapters/git-adapter.js';
+import { type GitAdapter, createGitAdapter } from '../adapters/git-adapter.js';
 import { type GitHubAdapter } from '../adapters/github-adapter.js';
 import { type ClaudeCliAdapter, generateVersionAnalysisPrompt } from '../adapters/claude-cli-adapter.js';
 import { type OpenSpecAdapter } from '../adapters/openspec-adapter.js';
@@ -258,19 +258,25 @@ export async function mergeWorkflow(
     // Pull might fail in worktree scenarios; continue with cleanup
   }
 
-  // Execute version bump if needed
+  // Execute version bump if needed (always from main repo, not worktree)
   let newVersion: string | undefined;
   if (bumpType && mainSynced) {
-    newVersion = await bumpVersion(bumpType, process.cwd(), onProgress);
+    // Get the main repo path - version bump must happen there, not in a worktree
+    const mainRepoPath = await git.getMainWorktreePath();
+    
+    newVersion = await bumpVersion(bumpType, mainRepoPath, onProgress);
+    
+    // Create a git adapter for the main repo to commit/push
+    const mainGit = createGitAdapter(mainRepoPath);
     
     // Commit version bump
     onProgress?.({ type: 'step_completed', message: `Committing version bump to ${newVersion}` });
-    await git.add(['package.json', 'package-lock.json', 'packages/*/package.json']);
-    await git.commit(`chore: release v${newVersion}`);
+    await mainGit.add(['package.json', 'package-lock.json', 'packages/*/package.json']);
+    await mainGit.commit(`chore: release v${newVersion}`);
     
     // Push to remote
     onProgress?.({ type: 'step_completed', message: 'Pushing version bump' });
-    await git.push('origin', baseBranch);
+    await mainGit.push('origin', baseBranch);
   }
 
   // Delete local branch

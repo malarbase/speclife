@@ -47,6 +47,9 @@ export interface GitAdapter {
   
   /** List all worktrees */
   listWorktrees(): Promise<Array<{ path: string; branch: string }>>;
+  
+  /** Get the main worktree path (original repo location) */
+  getMainWorktreePath(): Promise<string>;
 }
 
 /**
@@ -148,6 +151,22 @@ export function createGitAdapter(repoPath: string): GitAdapter {
       }
       
       return worktrees;
+    },
+    
+    async getMainWorktreePath(): Promise<string> {
+      // The first worktree in the list is always the main repo
+      const result = await git.raw(['worktree', 'list', '--porcelain']);
+      const lines = result.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('worktree ')) {
+          return line.slice(9);
+        }
+      }
+      
+      // Fallback to revparse for repos without worktrees
+      const toplevel = await git.revparse(['--show-toplevel']);
+      return toplevel.trim();
     },
   };
 }
