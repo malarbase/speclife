@@ -119,6 +119,7 @@ export function createMockGitAdapter(overrides: Partial<MockGitAdapter> = {}): M
     createWorktree: vi.fn().mockResolvedValue(undefined),
     removeWorktree: vi.fn().mockResolvedValue(undefined),
     listWorktrees: vi.fn().mockResolvedValue([]),
+    getMainWorktreePath: vi.fn().mockResolvedValue('/mock/main/repo'),
     ...overrides,
   };
 }
@@ -140,6 +141,7 @@ export interface MockGitAdapter {
   createWorktree: ReturnType<typeof vi.fn>;
   removeWorktree: ReturnType<typeof vi.fn>;
   listWorktrees: ReturnType<typeof vi.fn>;
+  getMainWorktreePath: ReturnType<typeof vi.fn>;
 }
 
 /**
