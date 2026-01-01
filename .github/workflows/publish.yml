@@ -57,21 +57,18 @@ jobs:
 
       - name: Publish @speclife/core
         if: steps.version.outputs.changed == 'true'
-        run: npm publish -w packages/core --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w packages/core
+        # Uses OIDC trusted publishing (access: public is set in package.json)
 
       - name: Publish @speclife/cli
         if: steps.version.outputs.changed == 'true'
-        run: npm publish -w packages/cli --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w packages/cli
+        # Uses OIDC trusted publishing (access: public is set in package.json)
 
       - name: Publish @speclife/mcp-server
         if: steps.version.outputs.changed == 'true'
-        run: npm publish -w packages/mcp-server --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w packages/mcp-server
+        # Uses OIDC trusted publishing (access: public is set in package.json)
 
       - name: Create Git tag
         if: steps.version.outputs.changed == 'true'

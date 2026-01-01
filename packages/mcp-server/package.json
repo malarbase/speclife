@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "speclife-mcp": "./dist/index.js"
+    "speclife-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -32,4 +32,3 @@
     "access": "public"
   }
 }
-
