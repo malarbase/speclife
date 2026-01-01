@@ -85,18 +85,14 @@ export async function mergeWorkflow(
     );
   }
 
-  // Detect if we're in a worktree
+  // Find worktree for this branch (if any)
   let worktreePath: string | undefined;
-  let isInWorktree = false;
   
   const worktrees = await git.listWorktrees();
-  const currentBranch = await git.getCurrentBranch();
   
   for (const wt of worktrees) {
-    if (wt.branch === currentBranch || wt.branch === branch) {
-      // We're likely in a worktree if we're on the branch being merged
+    if (wt.branch === branch) {
       worktreePath = wt.path;
-      isInWorktree = worktrees.length > 1; // Main repo + at least one worktree
       break;
     }
   }
@@ -136,7 +132,7 @@ export async function mergeWorkflow(
 
   // Remove worktree if applicable
   let worktreeRemoved = false;
-  if (removeWorktree && isInWorktree && worktreePath) {
+  if (removeWorktree && worktreePath) {
     onProgress?.({ type: 'step_completed', message: `Removing worktree at ${worktreePath}` });
     try {
       await git.removeWorktree(worktreePath);
