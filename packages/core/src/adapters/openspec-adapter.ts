@@ -17,6 +17,9 @@ export interface OpenSpecAdapter {
   /** Read a change's full context */
   readChange(changeId: string): Promise<Change>;
   
+  /** Read raw proposal.md content */
+  readProposal(changeId: string): Promise<string>;
+  
   /** List all active changes (excluding archive) */
   listChanges(): Promise<string[]>;
   
@@ -110,6 +113,20 @@ export function createOpenSpecAdapter(options: OpenSpecAdapterOptions): OpenSpec
         design,
         createdAt: new Date(), // TODO: Get from git or file stat
       };
+    },
+    
+    async readProposal(changeId: string): Promise<string> {
+      const proposalPath = join(changesDir, changeId, 'proposal.md');
+      
+      if (!await fileExists(proposalPath)) {
+        throw new SpecLifeError(
+          ErrorCodes.CHANGE_NOT_FOUND,
+          `Proposal for change '${changeId}' not found`,
+          { changeId }
+        );
+      }
+      
+      return readFile(proposalPath, 'utf-8');
     },
     
     async listChanges(): Promise<string[]> {
