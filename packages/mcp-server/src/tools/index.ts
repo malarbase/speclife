@@ -6,6 +6,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerInitTool } from "./init.js";
 import { registerStatusTool } from "./status.js";
 import { registerListTool } from "./list.js";
+import { registerSubmitTool } from "./submit.js";
 
 /**
  * Register all SpecLife tools with the MCP server
@@ -17,7 +18,7 @@ export function registerTools(server: McpServer): void {
   registerListTool(server);
   
   // Phase 2: Submit and Merge
-  // registerSubmitTool(server);
+  registerSubmitTool(server);
   // registerMergeTool(server);
   
   // Phase 3: Implement (includes internal test loop)
