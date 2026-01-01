@@ -26,10 +26,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Note: Don't use registry-url here for OIDC trusted publishing
 
       - name: Install dependencies
         run: npm ci
@@ -59,21 +57,15 @@ jobs:
 
       - name: Publish @speclife/core
         if: steps.version.outputs.changed == 'true'
-        run: npm publish -w packages/core --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w packages/core --provenance --access public
 
       - name: Publish @speclife/cli
         if: steps.version.outputs.changed == 'true'
-        run: npm publish -w packages/cli --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w packages/cli --provenance --access public
 
       - name: Publish @speclife/mcp-server
         if: steps.version.outputs.changed == 'true'
-        run: npm publish -w packages/mcp-server --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w packages/mcp-server --provenance --access public
 
       - name: Create Git tag
         if: steps.version.outputs.changed == 'true'
@@ -92,4 +84,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
