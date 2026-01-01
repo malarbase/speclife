@@ -50,19 +50,60 @@ AI: [calls speclife_merge]
 
 ## Installation
 
+### Option A: Install from npm (Recommended)
+
 ```bash
-# Clone and install
+# Install CLI and MCP server globally
+npm install -g @speclife/cli @speclife/mcp-server
+
+# Verify installation
+speclife --version
+speclife-mcp --version
+```
+
+### Option B: Install from Source (Development)
+
+```bash
+# Clone the repository
 git clone https://github.com/malarbase/speclife.git
 cd speclife
-npm install
 
-# Build
+# Install dependencies and build
+npm install
 npm run build
+
+# Link packages globally for development
+npm link -w packages/cli
+npm link -w packages/mcp-server
+
+# Now available as:
+speclife --help
+speclife-mcp  # Starts MCP server
 ```
+
+### Option C: Direct Path (No Global Install)
+
+Use the built files directly in your MCP configuration (see Setup sections below).
 
 ## Setup with Claude Desktop
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "speclife": {
+      "command": "speclife-mcp",
+      "env": {
+        "GITHUB_TOKEN": "ghp_xxxx",
+        "ANTHROPIC_API_KEY": "sk-ant-xxxx"
+      }
+    }
+  }
+}
+```
+
+Or if using direct path (Option C):
 
 ```json
 {
@@ -81,13 +122,17 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ## Setup with Cursor
 
-Add to your workspace's MCP configuration:
+Add to `.cursor/mcp.json` in your workspace:
 
 ```json
 {
-  "speclife": {
-    "command": "node",
-    "args": ["./speclife/packages/mcp-server/dist/index.js"]
+  "mcpServers": {
+    "speclife": {
+      "command": "speclife-mcp",
+      "env": {
+        "GITHUB_TOKEN": "ghp_xxxx"
+      }
+    }
   }
 }
 ```
