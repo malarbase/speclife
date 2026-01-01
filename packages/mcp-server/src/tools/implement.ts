@@ -13,6 +13,7 @@ import {
   createOpenSpecAdapter, 
   implementWorkflow,
   type ImplementMode,
+  type ProgressEvent,
 } from "@speclife/core";
 import { z } from "zod";
 
@@ -60,7 +61,7 @@ export function registerImplementTool(server: McpServer): void {
             dryRun: parsed.dryRun,
           },
           { openspec, config },
-          (event) => {
+          (event: ProgressEvent) => {
             progressMessages.push(event.message);
           }
         );
