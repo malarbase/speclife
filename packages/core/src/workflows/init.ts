@@ -3,6 +3,7 @@
  */
 
 import { type GitAdapter } from '../adapters/git-adapter.js';
+import { type GitHubAdapter } from '../adapters/github-adapter.js';
 import { type OpenSpecAdapter, createOpenSpecAdapter } from '../adapters/openspec-adapter.js';
 import {
   type EnvironmentRegistry,
@@ -10,7 +11,7 @@ import {
   createDefaultEnvironmentRegistry,
 } from '../adapters/environment-adapter.js';
 import { type SpecLifeConfig } from '../config.js';
-import { SpecLifeError, ErrorCodes, type ProgressCallback } from '../types.js';
+import { SpecLifeError, ErrorCodes, type PullRequest, type ProgressCallback } from '../types.js';
 
 export interface InitOptions {
   /** Change identifier (kebab-case) */
@@ -23,6 +24,8 @@ export interface InitOptions {
   skipBootstrap?: boolean;
   /** Preview changes without applying */
   dryRun?: boolean;
+  /** Skip draft PR creation (overrides config.createDraftPR) */
+  skipDraftPR?: boolean;
 }
 
 export interface InitResult {
@@ -36,6 +39,8 @@ export interface InitResult {
   tasksPath: string;
   /** Environment bootstrap results (if bootstrap ran) */
   bootstrapResults?: BootstrapResult[];
+  /** Draft PR created (if createDraftPR is enabled) */
+  pullRequest?: PullRequest;
 }
 
 interface InitDependencies {
@@ -44,6 +49,8 @@ interface InitDependencies {
   config: SpecLifeConfig;
   /** Environment registry (uses default if not provided) */
   environmentRegistry?: EnvironmentRegistry;
+  /** GitHub adapter (required if createDraftPR is enabled) */
+  github?: GitHubAdapter;
 }
 
 /**
@@ -57,8 +64,20 @@ export async function initWorkflow(
   deps: InitDependencies,
   onProgress?: ProgressCallback
 ): Promise<InitResult> {
-  const { changeId, description, noWorktree = false, skipBootstrap = false, dryRun = false } = options;
-  const { git, openspec, config, environmentRegistry } = deps;
+  const { changeId, description, noWorktree = false, skipBootstrap = false, dryRun = false, skipDraftPR = false } = options;
+  const { git, openspec, config, environmentRegistry, github } = deps;
+  
+  // Determine if we should create a draft PR
+  const shouldCreateDraftPR = config.createDraftPR && !skipDraftPR && !dryRun;
+  
+  // Validate that github adapter is provided if draft PR is needed
+  if (shouldCreateDraftPR && !github) {
+    throw new SpecLifeError(
+      ErrorCodes.CONFIG_INVALID,
+      'GitHub adapter is required when createDraftPR is enabled',
+      { createDraftPR: config.createDraftPR, skipDraftPR }
+    );
+  }
   
   // Validate changeId format (kebab-case)
   if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(changeId)) {
@@ -104,12 +123,27 @@ export async function initWorkflow(
     onProgress?.({ type: 'step_completed', message: 'Scaffolding proposal files' });
     const { proposalPath, tasksPath } = await openspec.scaffoldChange(changeId, { description });
     
+    // Create draft PR if enabled
+    let pullRequest: PullRequest | undefined;
+    if (shouldCreateDraftPR && github) {
+      pullRequest = await createInitialDraftPR({
+        git,
+        github,
+        changeId,
+        description,
+        branch,
+        baseBranch: config.github.baseBranch,
+        onProgress,
+      });
+    }
+    
     onProgress?.({ type: 'step_completed', message: 'Initialization complete' });
     
     return {
       branch,
       proposalPath,
       tasksPath,
+      pullRequest,
     };
   }
   
@@ -166,6 +200,25 @@ export async function initWorkflow(
   onProgress?.({ type: 'step_completed', message: 'Scaffolding proposal files in worktree' });
   const { proposalPath, tasksPath } = await worktreeOpenspec.scaffoldChange(changeId, { description });
   
+  // Create draft PR if enabled
+  // For worktree mode, we need a git adapter for the worktree
+  let pullRequest: PullRequest | undefined;
+  if (shouldCreateDraftPR && github) {
+    // Create a git adapter for the worktree to commit and push from there
+    const { createGitAdapter } = await import('../adapters/git-adapter.js');
+    const worktreeGit = createGitAdapter(worktreePath);
+    
+    pullRequest = await createInitialDraftPR({
+      git: worktreeGit,
+      github,
+      changeId,
+      description,
+      branch,
+      baseBranch: config.github.baseBranch,
+      onProgress,
+    });
+  }
+  
   onProgress?.({ type: 'step_completed', message: 'Initialization complete' });
   
   return {
@@ -174,5 +227,82 @@ export async function initWorkflow(
     proposalPath,
     tasksPath,
     bootstrapResults,
+    pullRequest,
   };
+}
+
+/**
+ * Helper to create initial commit, push, and draft PR
+ */
+async function createInitialDraftPR(params: {
+  git: GitAdapter;
+  github: GitHubAdapter;
+  changeId: string;
+  description?: string;
+  branch: string;
+  baseBranch: string;
+  onProgress?: ProgressCallback;
+}): Promise<PullRequest> {
+  const { git, github, changeId, description, branch, baseBranch, onProgress } = params;
+  
+  // Stage and commit the scaffolded files
+  onProgress?.({ type: 'step_completed', message: 'Committing proposal files' });
+  await git.add(['.']);
+  await git.commit(`spec: add ${changeId} proposal`);
+  
+  // Push to origin
+  onProgress?.({ type: 'step_completed', message: `Pushing to origin/${branch}` });
+  await git.push('origin', branch);
+  
+  // Create draft PR
+  onProgress?.({ type: 'step_completed', message: 'Creating draft pull request' });
+  const prTitle = generatePRTitle(changeId, description);
+  const prBody = generateInitialPRBody(changeId, description);
+  
+  const pullRequest = await github.createPullRequest({
+    title: prTitle,
+    body: prBody,
+    head: branch,
+    base: baseBranch,
+    draft: true,
+  });
+  
+  onProgress?.({ type: 'step_completed', message: `Created draft PR #${pullRequest.number}` });
+  
+  return pullRequest;
+}
+
+/**
+ * Generate PR title from changeId and description
+ */
+function generatePRTitle(changeId: string, description?: string): string {
+  if (description) {
+    const firstLine = description.split('\n')[0].trim();
+    if (firstLine.length > 72) {
+      return firstLine.slice(0, 69) + '...';
+    }
+    return firstLine;
+  }
+  // Convert kebab-case to title case
+  return changeId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/**
+ * Generate initial PR body for draft PR
+ */
+function generateInitialPRBody(_changeId: string, description?: string): string {
+  const lines = [
+    '## Proposal',
+    '',
+    description || '_Proposal pending - see proposal.md for details_',
+    '',
+    '---',
+    '',
+    '> 📝 **Draft PR** - This PR was created during `speclife_init` to track the change from the start.',
+    '> Update the proposal and tasks as you implement the change.',
+    '',
+    '*Created with [SpecLife](https://github.com/malarbase/speclife)*',
+  ];
+  
+  return lines.join('\n');
 }

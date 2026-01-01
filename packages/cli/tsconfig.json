@@ -3,12 +3,31 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "composite": true
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@speclife/cli": [
+        "../../packages/cli/src/index.ts"
+      ],
+      "@speclife/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@speclife/mcp-server": [
+        "../../packages/mcp-server/src/index.ts"
+      ]
+    }
   },
   "references": [
-    { "path": "../core" }
+    {
+      "path": "../core"
+    }
   ],
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test"]
+  "include": [
+    "src*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test"
+  ]
 }
-
