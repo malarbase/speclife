@@ -1,6 +1,6 @@
 {
   "name": "@speclife/cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CLI for SpecLife - for CI/scripts",
   "type": "module",
   "main": "./dist/index.js",
