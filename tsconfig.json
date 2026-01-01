@@ -3,7 +3,9 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -14,12 +16,29 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "composite": true
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@speclife/cli": [
+        "packages/cli/src/index.ts"
+      ],
+      "@speclife/core": [
+        "packages/core/src/index.ts"
+      ],
+      "@speclife/mcp-server": [
+        "packages/mcp-server/src/index.ts"
+      ]
+    }
   },
   "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/mcp-server" },
-    { "path": "./packages/cli" }
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/mcp-server"
+    },
+    {
+      "path": "./packages/cli"
+    }
   ]
 }
-

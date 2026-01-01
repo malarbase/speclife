@@ -30,6 +30,9 @@ export interface GitHubAdapter {
     mergeable: boolean;
     reason?: string;
   }>;
+  
+  /** Mark a draft PR as ready for review */
+  markPullRequestReady(number: number): Promise<PullRequest>;
 }
 
 interface GitHubAdapterOptions {
@@ -142,6 +145,45 @@ export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapte
       }
       
       return { mergeable: data.mergeable ?? false };
+    },
+    
+    async markPullRequestReady(number: number): Promise<PullRequest> {
+      // The REST API doesn't support marking PRs ready, so we use GraphQL
+      // First, get the node ID for the PR
+      const { data: prData } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: number,
+      });
+      
+      const nodeId = prData.node_id;
+      
+      // Use GraphQL mutation to mark ready
+      await octokit.graphql(`
+        mutation($id: ID!) {
+          markPullRequestReadyForReview(input: { pullRequestId: $id }) {
+            pullRequest {
+              id
+            }
+          }
+        }
+      `, { id: nodeId });
+      
+      // Fetch updated PR
+      const { data } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: number,
+      });
+      
+      return {
+        number: data.number,
+        url: data.html_url,
+        title: data.title,
+        state: data.merged ? 'merged' : (data.state as 'open' | 'closed'),
+        mergeable: data.mergeable,
+        draft: data.draft ?? false,
+      };
     },
   };
 }

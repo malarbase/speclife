@@ -28,6 +28,8 @@ export interface SubmitResult {
   pullRequest: PullRequest;
   /** Whether PR was newly created or already existed */
   prCreated: boolean;
+  /** Whether an existing draft PR was marked ready for review */
+  prMarkedReady: boolean;
   /** Whether change was archived */
   archived: boolean;
 }
@@ -106,6 +108,7 @@ export async function submitWorkflow(
   // Check if PR already exists
   let pullRequest = await github.getPullRequestByBranch(branch);
   let prCreated = false;
+  let prMarkedReady = false;
 
   if (!pullRequest) {
     // Create PR
@@ -122,6 +125,13 @@ export async function submitWorkflow(
     prCreated = true;
   } else {
     onProgress?.({ type: 'step_completed', message: `PR #${pullRequest.number} already exists` });
+    
+    // If the existing PR is a draft and we're not creating as draft, mark it ready
+    if (pullRequest.draft && !draft) {
+      onProgress?.({ type: 'step_completed', message: `Marking PR #${pullRequest.number} ready for review` });
+      pullRequest = await github.markPullRequestReady(pullRequest.number);
+      prMarkedReady = true;
+    }
   }
 
   // Archive the change
@@ -144,6 +154,7 @@ export async function submitWorkflow(
     branch,
     pullRequest,
     prCreated,
+    prMarkedReady,
     archived,
   };
 }

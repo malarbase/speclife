@@ -61,17 +61,22 @@ export function registerSubmitTool(server: McpServer): void {
         const lines = [
           `✓ Committed: ${result.commitSha.slice(0, 7)}`,
           `✓ Pushed to: origin/${result.branch}`,
-          result.prCreated 
-            ? `✓ Created PR #${result.pullRequest.number}: ${result.pullRequest.url}`
-            : `✓ PR #${result.pullRequest.number} already exists: ${result.pullRequest.url}`,
         ];
+        
+        if (result.prCreated) {
+          lines.push(`✓ Created PR #${result.pullRequest.number}: ${result.pullRequest.url}`);
+        } else if (result.prMarkedReady) {
+          lines.push(`✓ Marked PR #${result.pullRequest.number} ready for review: ${result.pullRequest.url}`);
+        } else {
+          lines.push(`✓ PR #${result.pullRequest.number} already exists: ${result.pullRequest.url}`);
+        }
         
         if (result.archived) {
           lines.push(`✓ Archived change to openspec/changes/archive/`);
         }
         
         if (result.pullRequest.draft) {
-          lines.push('', 'Note: PR created as draft. Mark ready for review when complete.');
+          lines.push('', 'Note: PR is still a draft. Mark ready for review when complete.');
         }
         
         lines.push('', 'Next steps:', '1. Review the PR on GitHub', '2. Once approved, run speclife_merge to complete');

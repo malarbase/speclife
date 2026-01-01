@@ -54,6 +54,9 @@ export interface SpecLifeConfig {
   
   /** Worktree configuration */
   worktree: WorktreeConfig;
+  
+  /** Create draft PR during init (default: true) */
+  createDraftPR: boolean;
 }
 
 /** Default configuration values */
@@ -72,6 +75,7 @@ const defaults: Partial<SpecLifeConfig> = {
       strategy: 'symlink',
     },
   },
+  createDraftPR: true,
 };
 
 /**
