@@ -4,6 +4,11 @@
 
 import { type GitAdapter } from '../adapters/git-adapter.js';
 import { type OpenSpecAdapter, createOpenSpecAdapter } from '../adapters/openspec-adapter.js';
+import {
+  type EnvironmentRegistry,
+  type BootstrapResult,
+  createDefaultEnvironmentRegistry,
+} from '../adapters/environment-adapter.js';
 import { type SpecLifeConfig } from '../config.js';
 import { SpecLifeError, ErrorCodes, type ProgressCallback } from '../types.js';
 
@@ -14,6 +19,8 @@ export interface InitOptions {
   description?: string;
   /** Disable worktree creation (create branch in current worktree instead) */
   noWorktree?: boolean;
+  /** Skip environment bootstrap (dependencies won't be set up) */
+  skipBootstrap?: boolean;
   /** Preview changes without applying */
   dryRun?: boolean;
 }
@@ -27,12 +34,16 @@ export interface InitResult {
   proposalPath: string;
   /** Path to tasks.md */
   tasksPath: string;
+  /** Environment bootstrap results (if bootstrap ran) */
+  bootstrapResults?: BootstrapResult[];
 }
 
 interface InitDependencies {
   git: GitAdapter;
   openspec: OpenSpecAdapter;
   config: SpecLifeConfig;
+  /** Environment registry (uses default if not provided) */
+  environmentRegistry?: EnvironmentRegistry;
 }
 
 /**
@@ -46,8 +57,8 @@ export async function initWorkflow(
   deps: InitDependencies,
   onProgress?: ProgressCallback
 ): Promise<InitResult> {
-  const { changeId, description, noWorktree = false, dryRun = false } = options;
-  const { git, openspec, config } = deps;
+  const { changeId, description, noWorktree = false, skipBootstrap = false, dryRun = false } = options;
+  const { git, openspec, config, environmentRegistry } = deps;
   
   // Validate changeId format (kebab-case)
   if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(changeId)) {
@@ -106,6 +117,45 @@ export async function initWorkflow(
   onProgress?.({ type: 'step_completed', message: `Creating worktree at ${worktreePath}` });
   await git.createWorktree(worktreePath, branch);
   
+  // Bootstrap environment (unless skipped)
+  let bootstrapResults: BootstrapResult[] | undefined;
+  if (!skipBootstrap) {
+    const registry = environmentRegistry ?? createDefaultEnvironmentRegistry();
+    const strategy = config.worktree?.bootstrap?.strategy ?? 'symlink';
+    
+    onProgress?.({ type: 'step_completed', message: 'Detecting and bootstrapping environments' });
+    
+    // Get the source root (current working directory)
+    const sourceRoot = process.cwd();
+    
+    bootstrapResults = await registry.bootstrapAll(
+      worktreePath,
+      sourceRoot,
+      strategy,
+      onProgress
+    );
+    
+    // Report results
+    const successful = bootstrapResults.filter(r => r.success);
+    const failed = bootstrapResults.filter(r => !r.success);
+    
+    if (successful.length > 0) {
+      onProgress?.({
+        type: 'step_completed',
+        message: `Bootstrapped ${successful.length} environment(s): ${successful.map(r => r.environment).join(', ')}`,
+        data: { results: successful },
+      });
+    }
+    
+    if (failed.length > 0) {
+      onProgress?.({
+        type: 'step_completed',
+        message: `Warning: ${failed.length} environment(s) failed to bootstrap: ${failed.map(r => r.message).join('; ')}`,
+        data: { results: failed },
+      });
+    }
+  }
+  
   // Create OpenSpec adapter for the worktree
   const worktreeOpenspec = createOpenSpecAdapter({
     projectRoot: worktreePath,
@@ -123,5 +173,6 @@ export async function initWorkflow(
     worktreePath,
     proposalPath,
     tasksPath,
+    bootstrapResults,
   };
 }
