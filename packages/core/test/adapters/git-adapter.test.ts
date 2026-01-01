@@ -76,12 +76,15 @@ describe('GitAdapter', () => {
   describe('checkout', () => {
     it('switches to existing branch', async () => {
       const adapter = createGitAdapter(tempDir);
+      // Remember original branch
+      const originalBranch = await adapter.getCurrentBranch();
+      // Create and switch to new branch
       await adapter.createBranch('feature/checkout-test');
-      // createBranch already checks out, go back to original
-      const original = await adapter.getCurrentBranch();
-      // The branch was created, so checkout should work
+      // Go back to original
+      await adapter.checkout(originalBranch);
+      expect(await adapter.getCurrentBranch()).toBe(originalBranch);
+      // Switch to the created branch
       await adapter.checkout('feature/checkout-test');
-
       expect(await adapter.getCurrentBranch()).toBe('feature/checkout-test');
     });
   });

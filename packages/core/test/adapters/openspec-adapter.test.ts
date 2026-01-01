@@ -75,7 +75,7 @@ describe('OpenSpecAdapter', () => {
     it('creates proposal and tasks files', async () => {
       const adapter = createOpenSpecAdapter({ projectRoot: tempDir, specDir: 'openspec' });
 
-      const result = await adapter.scaffoldChange('new-feature', 'Add a new feature');
+      const result = await adapter.scaffoldChange('new-feature', { description: 'Add a new feature' });
 
       expect(result.proposalPath).toContain('new-feature/proposal.md');
       expect(result.tasksPath).toContain('new-feature/tasks.md');
@@ -87,7 +87,7 @@ describe('OpenSpecAdapter', () => {
       const adapter = createOpenSpecAdapter({ projectRoot: tempDir, specDir: 'openspec' });
 
       await expect(
-        adapter.scaffoldChange('existing-change', 'Description')
+        adapter.scaffoldChange('existing-change', { description: 'Description' })
       ).rejects.toThrow();
     });
   });

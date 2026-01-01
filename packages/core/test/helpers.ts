@@ -113,12 +113,12 @@ export function createMockGitAdapter(overrides: Partial<MockGitAdapter> = {}): M
     push: vi.fn().mockResolvedValue(undefined),
     getCurrentBranch: vi.fn().mockResolvedValue('main'),
     branchExists: vi.fn().mockResolvedValue(false),
-    status: vi.fn().mockResolvedValue({ isClean: true, files: [] }),
-    getRemoteUrl: vi.fn().mockResolvedValue('https://github.com/test/repo.git'),
+    status: vi.fn().mockResolvedValue({ current: 'main', staged: [], unstaged: [], untracked: [] }),
+    pull: vi.fn().mockResolvedValue(undefined),
+    deleteBranch: vi.fn().mockResolvedValue(undefined),
     createWorktree: vi.fn().mockResolvedValue(undefined),
     removeWorktree: vi.fn().mockResolvedValue(undefined),
     listWorktrees: vi.fn().mockResolvedValue([]),
-    isInWorktree: vi.fn().mockResolvedValue(false),
     ...overrides,
   };
 }
@@ -135,11 +135,11 @@ export interface MockGitAdapter {
   getCurrentBranch: ReturnType<typeof vi.fn>;
   branchExists: ReturnType<typeof vi.fn>;
   status: ReturnType<typeof vi.fn>;
-  getRemoteUrl: ReturnType<typeof vi.fn>;
+  pull: ReturnType<typeof vi.fn>;
+  deleteBranch: ReturnType<typeof vi.fn>;
   createWorktree: ReturnType<typeof vi.fn>;
   removeWorktree: ReturnType<typeof vi.fn>;
   listWorktrees: ReturnType<typeof vi.fn>;
-  isInWorktree: ReturnType<typeof vi.fn>;
 }
 
 /**
