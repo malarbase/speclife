@@ -3,7 +3,7 @@
  */
 
 import { cosmiconfig } from 'cosmiconfig';
-import { SpecLifeError, ErrorCodes } from './types.js';
+import { SpecLifeError, ErrorCodes, type ImplementMode } from './types.js';
 import type { BootstrapStrategy } from './adapters/environment-adapter.js';
 
 /** Per-environment bootstrap configuration */
@@ -36,6 +36,9 @@ export interface SpecLifeConfig {
   /** AI model identifier */
   aiModel: string;
   
+  /** Implementation mode for speclife_implement (default: "claude-cli") */
+  implementMode: ImplementMode;
+  
   /** GitHub configuration */
   github: {
     owner: string;
@@ -61,6 +64,7 @@ const defaults: Partial<SpecLifeConfig> = {
   specDir: 'openspec',
   aiProvider: 'claude',
   aiModel: 'claude-sonnet-4-20250514',
+  implementMode: 'claude-cli',
   github: {
     owner: '',
     repo: '',
@@ -124,6 +128,9 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<SpecLifeC
   if (process.env.SPECLIFE_AI_MODEL) {
     config.aiModel = process.env.SPECLIFE_AI_MODEL;
   }
+  if (process.env.SPECLIFE_IMPLEMENT_MODE) {
+    config.implementMode = process.env.SPECLIFE_IMPLEMENT_MODE as ImplementMode;
+  }
   
   // Validate required fields
   validateConfig(config);
@@ -133,6 +140,9 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<SpecLifeC
 
 /** Valid bootstrap strategies */
 const validBootstrapStrategies: BootstrapStrategy[] = ['symlink', 'install', 'none'];
+
+/** Valid implementation modes */
+const validImplementModes: ImplementMode[] = ['claude-cli', 'claude-sdk', 'cursor'];
 
 /**
  * Validate configuration
@@ -151,6 +161,15 @@ function validateConfig(config: SpecLifeConfig): void {
       ErrorCodes.CONFIG_INVALID,
       `Invalid aiProvider: ${config.aiProvider}. Must be one of: claude, openai, gemini`,
       { field: 'aiProvider', value: config.aiProvider }
+    );
+  }
+  
+  // Validate implementMode
+  if (config.implementMode && !validImplementModes.includes(config.implementMode)) {
+    throw new SpecLifeError(
+      ErrorCodes.CONFIG_INVALID,
+      `Invalid implementMode: ${config.implementMode}. Must be one of: ${validImplementModes.join(', ')}`,
+      { field: 'implementMode', value: config.implementMode }
     );
   }
   

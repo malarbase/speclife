@@ -25,6 +25,26 @@ export {
   patchTsconfigForMonorepo,
 } from './environment-adapter.js';
 
-// AI adapter will be added in Phase 3
-// export { createAIAdapter, type AIAdapter } from './ai-adapter.js';
+// AI/Implementation adapters
+export {
+  createClaudeCliAdapter,
+  generateImplementationPrompt,
+  type ClaudeCliAdapter,
+  type ClaudeCliOptions,
+  type ClaudeCliResult,
+} from './claude-cli-adapter.js';
+
+export {
+  createClaudeSdkAdapter,
+  generateAgenticSystemPrompt,
+  type ClaudeSdkAdapter,
+  type AgenticLoopOptions,
+  type AgenticLoopResult,
+} from './claude-sdk-adapter.js';
+
+export {
+  createCursorAdapter,
+  type CursorAdapter,
+  type CursorResult,
+} from './cursor-adapter.js';
 

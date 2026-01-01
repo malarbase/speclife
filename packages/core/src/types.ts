@@ -78,7 +78,40 @@ export const ErrorCodes = {
   GITHUB_ERROR: 'GITHUB_ERROR',
   AI_ERROR: 'AI_ERROR',
   MISSING_TOKEN: 'MISSING_TOKEN',
+  CLI_NOT_FOUND: 'CLI_NOT_FOUND',
+  TEST_FAILED: 'TEST_FAILED',
 } as const;
+
+/** Implementation modes for speclife_implement */
+export type ImplementMode = 'claude-cli' | 'claude-sdk' | 'cursor';
+
+/** Options for the implement workflow */
+export interface ImplementOptions {
+  /** Change ID to implement */
+  changeId: string;
+  /** Implementation mode (default: from config or 'claude-cli') */
+  mode?: ImplementMode;
+  /** Specific task ID to implement (e.g., "1.2") */
+  taskId?: string;
+  /** Return plan without executing */
+  dryRun?: boolean;
+}
+
+/** Result of the implement workflow */
+export interface ImplementResult {
+  /** Mode used for implementation */
+  mode: ImplementMode;
+  /** Overall status */
+  status: 'success' | 'partial' | 'failed' | 'manual';
+  /** Human-readable output/summary */
+  output: string;
+  /** Tasks that were completed */
+  tasksCompleted: string[];
+  /** Tasks that failed (with reasons) */
+  tasksFailed?: Array<{ taskId: string; reason: string }>;
+  /** For dry-run: the planned prompt/actions */
+  plan?: string;
+}
 
 /** Progress event emitted during long operations */
 export interface ProgressEvent {
