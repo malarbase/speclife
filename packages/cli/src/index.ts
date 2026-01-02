@@ -181,13 +181,24 @@ When implementing changes, always read:
         console.log(`✓ Created ${specDir}/speclife.md (template)`);
       }
       
-      // Create GitHub release workflow
+      // Create GitHub release workflow (only if no release workflow exists)
       const workflowDir = join(cwd, '.github', 'workflows');
-      const workflowPath = join(workflowDir, 'speclife-release.yml');
-      try {
-        await access(workflowPath);
-        console.log('✓ .github/workflows/speclife-release.yml already exists');
-      } catch {
+      const releaseWorkflows = ['release.yml', 'speclife-release.yml'];
+      let existingReleaseWorkflow: string | null = null;
+      
+      for (const wf of releaseWorkflows) {
+        try {
+          await access(join(workflowDir, wf));
+          existingReleaseWorkflow = wf;
+          break;
+        } catch {
+          // Continue checking
+        }
+      }
+      
+      if (existingReleaseWorkflow) {
+        console.log(`✓ Release workflow already exists: .github/workflows/${existingReleaseWorkflow}`);
+      } else {
         try {
           await mkdir(workflowDir, { recursive: true });
           const workflowContent = `# SpecLife Release Workflow
@@ -232,7 +243,7 @@ jobs:
           tag_name: \${{ steps.version.outputs.version }}
           generate_release_notes: true
 `;
-          await writeFile(workflowPath, workflowContent);
+          await writeFile(join(workflowDir, 'speclife-release.yml'), workflowContent);
           console.log('✓ Created .github/workflows/speclife-release.yml');
         } catch (err) {
           console.log('⚠️  Could not create release workflow');
