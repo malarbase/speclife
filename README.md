@@ -35,9 +35,16 @@ AI: [calls speclife_submit]
 You: "Merge when CI passes"
 AI: [calls speclife_merge]
     ✓ PR #42 merged (squash)
-    ✓ Switched to main branch
-    ✓ Pulled latest changes
-    Ready for next spec!
+    ✓ Synced main with latest changes
+    
+    📊 Release Analysis
+    Suggested bump: minor (0.1.7 → 0.2.0)
+    
+    ✨ Auto-release enabled. Creating release PR...
+    ✓ Created release PR #43
+    🤖 Auto-merge enabled - will merge when CI passes
+    
+    Release will happen automatically!
 ```
 
 ## Features
@@ -152,6 +159,13 @@ github:
   baseBranch: main
 
 testCommand: npm test
+
+# Auto-release configuration (optional)
+release:
+  auto:
+    patch: true   # Auto-create release PR for patch bumps
+    minor: true   # Auto-create release PR for minor bumps
+    major: false  # Require manual speclife_release for major
 ```
 
 ## MCP Tools
@@ -163,21 +177,32 @@ testCommand: npm test
 | `speclife_list` | List all active changes across worktrees |
 | `speclife_implement` | AI-driven implementation with internal test loop (implement → test → fix → repeat) |
 | `speclife_submit` | Commit, push, create PR, and archive the change |
-| `speclife_merge` | Merge PR on GitHub, cleanup worktree, ready for next cycle |
+| `speclife_merge` | Merge PR on GitHub, cleanup worktree, auto-create release PR |
+| `speclife_release` | Create a release PR with version bump and changelog |
 
 ## Workflow
 
 ```
-┌─────────────┐     ┌─────────────────────────────────────┐     ┌──────────────┐     ┌─────────────┐
-│ speclife_   │     │         speclife_implement          │     │  speclife_   │     │  speclife_  │
-│    init     │ ──▶ │  ┌─────────────────────────────┐   │ ──▶ │    submit    │ ──▶ │    merge    │
-│             │     │  │ implement → test → fix loop │   │     │              │     │             │
-└─────────────┘     │  └─────────────────────────────┘   │     └──────────────┘     └─────────────┘
+┌─────────────┐     ┌─────────────────────────────────────┐     ┌──────────────┐     ┌─────────────┐     ┌─────────────┐
+│ speclife_   │     │         speclife_implement          │     │  speclife_   │     │  speclife_  │     │  speclife_  │
+│    init     │ ──▶ │  ┌─────────────────────────────┐   │ ──▶ │    submit    │ ──▶ │    merge    │ ──▶ │   release   │
+│             │     │  │ implement → test → fix loop │   │     │              │     │             │     │  (auto/manual)
+└─────────────┘     │  └─────────────────────────────┘   │     └──────────────┘     └─────────────┘     └─────────────┘
                     └─────────────────────────────────────┘
-  Creates branch      AI implements code, runs tests,        Commits, pushes,      Merges PR,
-  + scaffolds         fixes failures until passing           creates PR,           switches to main
-  proposal                                                   archives change       for next cycle
+  Creates branch      AI implements code, runs tests,        Commits, pushes,      Merges PR,          Creates release
+  + scaffolds         fixes failures until passing           creates PR,           auto-triggers       PR, bumps version,
+  proposal                                                   archives change       release for         publishes to npm
+                                                                                   patch/minor
 ```
+
+### Release Flow
+
+After `speclife_merge`, if auto-release is enabled:
+1. Analyzes commits since last tag
+2. Suggests version bump (patch/minor/major)
+3. For patch/minor: auto-creates release PR with auto-merge
+4. For major: prompts for manual `speclife_release --major`
+5. When release PR merges → GitHub Release created → npm publish
 
 ## Worktrees (Default Behavior)
 
@@ -244,8 +269,11 @@ speclife/
 # Build all packages
 npm run build
 
-# Run tests
+# Run tests (167 tests across adapters, workflows, and tools)
 npm test
+
+# Type check
+npm run typecheck
 
 # Start MCP server (for testing)
 npm run mcp:start
@@ -253,6 +281,13 @@ npm run mcp:start
 # Development mode (watch + restart)
 npm run mcp:dev
 ```
+
+### Test Coverage
+
+- **Adapters**: GitAdapter, GitHubAdapter, OpenSpecAdapter, EnvironmentAdapter
+- **Workflows**: init, status, submit, merge
+- **Config**: loading, validation, defaults
+- **MCP Tools**: schema validation for all 7 tools
 
 ## License
 
