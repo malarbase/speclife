@@ -125,6 +125,8 @@ export function createMockGitAdapter(overrides: Partial<MockGitAdapter> = {}): M
     getCommitsSince: vi.fn().mockResolvedValue([]),
     createTag: vi.fn().mockResolvedValue(undefined),
     tagExists: vi.fn().mockResolvedValue(false),
+    // Diff operation
+    diff: vi.fn().mockResolvedValue(''),
     ...overrides,
   };
 }
@@ -152,6 +154,8 @@ export interface MockGitAdapter {
   getCommitsSince: ReturnType<typeof vi.fn>;
   createTag: ReturnType<typeof vi.fn>;
   tagExists: ReturnType<typeof vi.fn>;
+  // Diff operation
+  diff: ReturnType<typeof vi.fn>;
 }
 
 /**

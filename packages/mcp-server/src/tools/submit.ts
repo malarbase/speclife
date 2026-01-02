@@ -24,12 +24,18 @@ const SubmitArgsSchema = z.object({
   commitMessage: z.string().optional().describe(
     "Custom commit message (defaults to proposal-based message)"
   ),
+  skipValidation: z.boolean().optional().describe(
+    "Skip spec validation before submitting (default: false)"
+  ),
+  strict: z.boolean().optional().describe(
+    "Enable strict validation mode - fail on any warnings (default: false)"
+  ),
 });
 
 export function registerSubmitTool(server: McpServer): void {
   server.tool(
     "speclife_submit",
-    "Submit a change: commit all changes, push to remote, create GitHub PR, and archive the change",
+    "Submit a change: validate spec, commit all changes, push to remote, create GitHub PR, and archive the change",
     SubmitArgsSchema.shape,
     async (args) => {
       try {
@@ -54,14 +60,39 @@ export function registerSubmitTool(server: McpServer): void {
             changeId: parsed.changeId,
             draft: parsed.draft,
             commitMessage: parsed.commitMessage,
+            skipValidation: parsed.skipValidation,
+            strict: parsed.strict,
           },
           { git, github, openspec, config }
         );
         
-        const lines = [
+        const lines: string[] = [];
+        
+        // Show validation results if validation was run
+        if (result.validation) {
+          const statusEmoji = result.validation.status === 'pass' ? '✅' : 
+                              result.validation.status === 'pass_with_warnings' ? '⚠️' : '❌';
+          lines.push(`${statusEmoji} Spec Validation: ${result.validation.status.replace(/_/g, ' ').toUpperCase()}`);
+          
+          if (result.validation.errors.length > 0) {
+            for (const error of result.validation.errors) {
+              lines.push(`  ❌ ${error}`);
+            }
+          }
+          
+          if (result.validation.warnings.length > 0) {
+            for (const warning of result.validation.warnings) {
+              lines.push(`  ⚠️ ${warning}`);
+            }
+          }
+          
+          lines.push('');
+        }
+        
+        lines.push(
           `✓ Committed: ${result.commitSha.slice(0, 7)}`,
           `✓ Pushed to: origin/${result.branch}`,
-        ];
+        );
         
         if (result.prCreated) {
           lines.push(`✓ Created PR #${result.pullRequest.number}: ${result.pullRequest.url}`);
@@ -94,4 +125,3 @@ export function registerSubmitTool(server: McpServer): void {
     }
   );
 }
-
