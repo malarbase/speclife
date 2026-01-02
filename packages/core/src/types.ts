@@ -207,3 +207,18 @@ export interface ListOptions {
   /** Sort order */
   sort?: 'activity' | 'progress' | 'name';
 }
+
+/** Validation status */
+export type ValidationStatus = 'pass' | 'pass_with_warnings' | 'fail';
+
+/** Validation report from openspec validate */
+export interface ValidationReport {
+  /** Overall validation status */
+  status: ValidationStatus;
+  /** Validation errors (cause failure) */
+  errors: string[];
+  /** Validation warnings */
+  warnings: string[];
+  /** Raw output from openspec validate */
+  output?: string;
+}

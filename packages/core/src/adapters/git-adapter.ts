@@ -64,6 +64,9 @@ export interface GitAdapter {
   
   /** Check if a tag exists */
   tagExists(name: string): Promise<boolean>;
+  
+  /** Get diff between current branch and a base branch */
+  diff(base: string): Promise<string>;
 }
 
 /**
@@ -233,6 +236,18 @@ export function createGitAdapter(repoPath: string): GitAdapter {
         return true;
       } catch {
         return false;
+      }
+    },
+    
+    async diff(base: string): Promise<string> {
+      try {
+        // Get diff between base and HEAD
+        const result = await git.diff([`${base}...HEAD`]);
+        return result;
+      } catch {
+        // Fallback: try without the three-dot notation
+        const result = await git.diff([base]);
+        return result;
       }
     },
   };

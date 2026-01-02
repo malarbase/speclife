@@ -2,11 +2,12 @@
  * Submit workflow - commit, push, create PR, and archive change
  */
 
+import { execa } from 'execa';
 import { type GitAdapter } from '../adapters/git-adapter.js';
 import { type GitHubAdapter } from '../adapters/github-adapter.js';
 import { type OpenSpecAdapter } from '../adapters/openspec-adapter.js';
 import { type SpecLifeConfig } from '../config.js';
-import { SpecLifeError, ErrorCodes, type PullRequest, type ProgressCallback } from '../types.js';
+import { SpecLifeError, ErrorCodes, type PullRequest, type ProgressCallback, type ValidationReport, type ValidationStatus } from '../types.js';
 
 export interface SubmitOptions {
   /** Change ID to submit */
@@ -17,6 +18,10 @@ export interface SubmitOptions {
   commitMessage?: string;
   /** Skip archiving the change */
   skipArchive?: boolean;
+  /** Skip validation check */
+  skipValidation?: boolean;
+  /** Strict mode - fail on any validation warnings */
+  strict?: boolean;
 }
 
 export interface SubmitResult {
@@ -32,6 +37,8 @@ export interface SubmitResult {
   prMarkedReady: boolean;
   /** Whether change was archived */
   archived: boolean;
+  /** Validation report (if validation was run) */
+  validation?: ValidationReport;
 }
 
 interface SubmitDependencies {
@@ -49,7 +56,7 @@ export async function submitWorkflow(
   deps: SubmitDependencies,
   onProgress?: ProgressCallback
 ): Promise<SubmitResult> {
-  const { changeId, draft = false, commitMessage, skipArchive = false } = options;
+  const { changeId, draft = false, commitMessage, skipArchive = false, skipValidation = false, strict = false } = options;
   const { git, github, openspec, config } = deps;
 
   const branch = `spec/${changeId}`;
@@ -71,6 +78,85 @@ export async function submitWorkflow(
       `Change '${changeId}' not found`,
       { changeId }
     );
+  }
+
+  // Run validation if not skipped
+  let validation: ValidationReport | undefined;
+  if (!skipValidation) {
+    onProgress?.({ type: 'step_completed', message: 'Validating spec formatting and structure...' });
+    try {
+      const args = ['validate', changeId, '--json', '--no-interactive'];
+      if (strict) {
+        args.push('--strict');
+      }
+      
+      const result = await execa('openspec', args, {
+        cwd: process.cwd(),
+        reject: false,
+      });
+
+      // Try to parse JSON output
+      let output: Record<string, unknown> | undefined;
+      try {
+        output = JSON.parse(result.stdout);
+      } catch {
+        // If JSON parsing fails, treat as raw output
+        validation = {
+          status: result.exitCode === 0 ? 'pass' : 'fail',
+          errors: result.exitCode !== 0 ? [result.stdout || result.stderr || 'Validation failed'] : [],
+          warnings: [],
+          output: result.stdout || result.stderr,
+        };
+      }
+
+      if (output) {
+        let status: ValidationStatus = 'pass';
+        const errors = (output.errors as string[]) ?? [];
+        const warnings = (output.warnings as string[]) ?? [];
+
+        if (errors.length > 0 || output.valid === false) {
+          status = 'fail';
+        } else if (warnings.length > 0) {
+          status = 'pass_with_warnings';
+        }
+
+        validation = {
+          status,
+          errors,
+          warnings,
+          output: result.stdout,
+        };
+      }
+
+      if (validation) {
+        onProgress?.({
+          type: 'step_completed',
+          message: `Validation: ${validation.status.toUpperCase().replace('_', ' ')}`,
+        });
+
+        if (strict && validation.status === 'pass_with_warnings') {
+          throw new SpecLifeError(
+            ErrorCodes.CONFIG_INVALID,
+            `Validation failed in strict mode: ${validation.warnings.length} warnings`,
+            { validation: validation as unknown as Record<string, unknown> }
+          );
+        }
+
+        if (validation.status === 'fail') {
+          throw new SpecLifeError(
+            ErrorCodes.CONFIG_INVALID,
+            `Validation failed: ${validation.errors.length} errors`,
+            { validation: validation as unknown as Record<string, unknown> }
+          );
+        }
+      }
+    } catch (error) {
+      if (error instanceof SpecLifeError) {
+        throw error;
+      }
+      // openspec validate might not be available - continue without validation
+      onProgress?.({ type: 'step_completed', message: `openspec validate not available: ${error instanceof Error ? error.message : String(error)}, proceeding` });
+    }
   }
 
   // Get git status
@@ -114,7 +200,7 @@ export async function submitWorkflow(
     // Create PR
     onProgress?.({ type: 'step_completed', message: 'Creating pull request' });
     
-    const prBody = generatePRBody(change);
+    const prBody = generatePRBody(change, validation);
     pullRequest = await github.createPullRequest({
       title: generatePRTitle(changeId, change.proposal.why),
       body: prBody,
@@ -156,6 +242,7 @@ export async function submitWorkflow(
     prCreated,
     prMarkedReady,
     archived,
+    validation,
   };
 }
 
@@ -194,7 +281,10 @@ function generatePRTitle(changeId: string, why: string): string {
 /**
  * Generate PR body from change proposal
  */
-function generatePRBody(change: { proposal: { why: string; whatChanges: string[] } }): string {
+function generatePRBody(
+  change: { proposal: { why: string; whatChanges: string[] } },
+  validation?: ValidationReport
+): string {
   const lines = [
     '## Why',
     change.proposal.why,
@@ -206,8 +296,30 @@ function generatePRBody(change: { proposal: { why: string; whatChanges: string[]
     lines.push(`- ${item}`);
   }
 
+  // Add validation section if validation was run
+  if (validation) {
+    lines.push('', '## Spec Validation');
+    
+    const statusEmoji = validation.status === 'pass' ? '✅' : 
+                        validation.status === 'pass_with_warnings' ? '⚠️' : '❌';
+    lines.push(`**Status:** ${statusEmoji} ${validation.status.replace(/_/g, ' ').toUpperCase()}`);
+    
+    if (validation.errors.length > 0) {
+      lines.push('', '### Errors');
+      for (const error of validation.errors) {
+        lines.push(`- ❌ ${error}`);
+      }
+    }
+    
+    if (validation.warnings.length > 0) {
+      lines.push('', '### Warnings');
+      for (const warning of validation.warnings) {
+        lines.push(`- ⚠️ ${warning}`);
+      }
+    }
+  }
+
   lines.push('', '---', '*Created with [SpecLife](https://github.com/malarbase/speclife)*');
 
   return lines.join('\n');
 }
-
