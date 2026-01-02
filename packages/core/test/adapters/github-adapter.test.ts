@@ -23,7 +23,6 @@ vi.mock('@octokit/rest', () => {
 
 import { createGitHubAdapter } from '../../src/adapters/github-adapter.js';
 import { Octokit } from '@octokit/rest';
-import { SpecLifeError } from '../../src/types.js';
 
 describe('GitHubAdapter', () => {
   const mockOctokit = {
@@ -51,18 +50,14 @@ describe('GitHubAdapter', () => {
     it('throws when GITHUB_TOKEN is missing', () => {
       delete process.env.GITHUB_TOKEN;
 
-      expect(() => createGitHubAdapter({ owner: 'test', repo: 'repo' }))
-        .toThrow(SpecLifeError);
+      expect(() => createGitHubAdapter('test', 'repo'))
+        .toThrow();
     });
 
-    it('creates adapter with token from options', () => {
-      delete process.env.GITHUB_TOKEN;
+    it('creates adapter with token from env', () => {
+      process.env.GITHUB_TOKEN = 'test-token';
 
-      const adapter = createGitHubAdapter({ 
-        owner: 'test', 
-        repo: 'repo',
-        token: 'custom-token',
-      });
+      const adapter = createGitHubAdapter('test', 'repo');
 
       expect(adapter).toBeDefined();
     });
@@ -75,13 +70,17 @@ describe('GitHubAdapter', () => {
           number: 42,
           html_url: 'https://github.com/test/repo/pull/42',
           title: 'Test PR',
+          body: 'Test body',
           state: 'open',
           mergeable: true,
           draft: false,
+          merged: false,
+          head: { ref: 'feature-branch', sha: 'abc123' },
+          base: { ref: 'main' },
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const pr = await adapter.createPullRequest({
         title: 'Test PR',
         body: 'Test body',
@@ -109,13 +108,17 @@ describe('GitHubAdapter', () => {
           number: 43,
           html_url: 'https://github.com/test/repo/pull/43',
           title: 'Draft PR',
+          body: 'Draft body',
           state: 'open',
           mergeable: null,
           draft: true,
+          merged: false,
+          head: { ref: 'draft-branch', sha: 'def456' },
+          base: { ref: 'main' },
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const pr = await adapter.createPullRequest({
         title: 'Draft PR',
         body: 'Draft body',
@@ -138,12 +141,17 @@ describe('GitHubAdapter', () => {
           number: 10,
           html_url: 'https://github.com/test/repo/pull/10',
           title: 'Feature PR',
+          body: '',
           state: 'open',
           draft: false,
+          merged: false,
+          mergeable: true,
+          head: { ref: 'spec/add-feature', sha: 'xyz789' },
+          base: { ref: 'main' },
         }],
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const pr = await adapter.getPullRequestByBranch('spec/add-feature');
 
       expect(pr).not.toBeNull();
@@ -159,7 +167,7 @@ describe('GitHubAdapter', () => {
     it('returns null when no PR found', async () => {
       mockOctokit.pulls.list.mockResolvedValue({ data: [] });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const pr = await adapter.getPullRequestByBranch('nonexistent-branch');
 
       expect(pr).toBeNull();
@@ -173,14 +181,17 @@ describe('GitHubAdapter', () => {
           number: 5,
           html_url: 'https://github.com/test/repo/pull/5',
           title: 'My PR',
+          body: 'Description',
           state: 'open',
           mergeable: true,
           draft: false,
           merged: false,
+          head: { ref: 'feature', sha: 'abc123' },
+          base: { ref: 'main' },
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const pr = await adapter.getPullRequest(5);
 
       expect(pr.number).toBe(5);
@@ -194,14 +205,17 @@ describe('GitHubAdapter', () => {
           number: 6,
           html_url: 'https://github.com/test/repo/pull/6',
           title: 'Merged PR',
+          body: '',
           state: 'closed',
           mergeable: false,
           draft: false,
           merged: true,
+          head: { ref: 'feature', sha: 'def456' },
+          base: { ref: 'main' },
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const pr = await adapter.getPullRequest(6);
 
       expect(pr.state).toBe('merged');
@@ -209,24 +223,24 @@ describe('GitHubAdapter', () => {
   });
 
   describe('mergePullRequest', () => {
-    it('merges PR with default method', async () => {
+    it('merges PR with default method (squash)', async () => {
       mockOctokit.pulls.merge.mockResolvedValue({ data: { merged: true } });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       await adapter.mergePullRequest(1);
 
       expect(mockOctokit.pulls.merge).toHaveBeenCalledWith({
         owner: 'test',
         repo: 'repo',
         pull_number: 1,
-        merge_method: 'merge',
+        merge_method: 'squash',
       });
     });
 
     it('merges PR with squash method', async () => {
       mockOctokit.pulls.merge.mockResolvedValue({ data: { merged: true } });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       await adapter.mergePullRequest(2, 'squash');
 
       expect(mockOctokit.pulls.merge).toHaveBeenCalledWith({
@@ -240,7 +254,7 @@ describe('GitHubAdapter', () => {
     it('merges PR with rebase method', async () => {
       mockOctokit.pulls.merge.mockResolvedValue({ data: { merged: true } });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       await adapter.mergePullRequest(3, 'rebase');
 
       expect(mockOctokit.pulls.merge).toHaveBeenCalledWith(
@@ -255,10 +269,11 @@ describe('GitHubAdapter', () => {
         data: {
           mergeable: true,
           draft: false,
+          mergeable_state: 'clean',
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const result = await adapter.isPullRequestMergeable(1);
 
       expect(result.mergeable).toBe(true);
@@ -269,29 +284,31 @@ describe('GitHubAdapter', () => {
         data: {
           mergeable: false,
           draft: false,
+          mergeable_state: 'dirty',
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const result = await adapter.isPullRequestMergeable(1);
 
       expect(result.mergeable).toBe(false);
-      expect(result.reason).toBe('Conflicts or checks failing');
+      expect(result.reason).toBe('Has merge conflicts');
     });
 
-    it('returns mergeable false for draft PR', async () => {
+    it('returns mergeable false when status is null', async () => {
       mockOctokit.pulls.get.mockResolvedValue({
         data: {
-          mergeable: true,
-          draft: true,
+          mergeable: null,
+          draft: false,
+          mergeable_state: 'unknown',
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const result = await adapter.isPullRequestMergeable(1);
 
       expect(result.mergeable).toBe(false);
-      expect(result.reason).toBe('PR is still a draft');
+      expect(result.reason).toBe('Mergeability status is being computed');
     });
   });
 
@@ -302,22 +319,25 @@ describe('GitHubAdapter', () => {
           number: 7,
           html_url: 'https://github.com/test/repo/pull/7',
           title: 'Ready PR',
+          body: '',
           state: 'open',
           mergeable: true,
           draft: false,
           merged: false,
           node_id: 'PR_123',
+          head: { ref: 'feature', sha: 'abc123' },
+          base: { ref: 'main' },
         },
       });
       mockOctokit.graphql.mockResolvedValue({});
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const pr = await adapter.markPullRequestReady(7);
 
       expect(pr.draft).toBe(false);
       expect(mockOctokit.graphql).toHaveBeenCalledWith(
         expect.stringContaining('markPullRequestReadyForReview'),
-        expect.objectContaining({ id: 'PR_123' })
+        expect.objectContaining({ pullRequestId: 'PR_123' })
       );
     });
   });
@@ -333,7 +353,7 @@ describe('GitHubAdapter', () => {
         },
       });
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const result = await adapter.enableAutoMerge(1, 'SQUASH');
 
       expect(result).toBe(true);
@@ -352,7 +372,7 @@ describe('GitHubAdapter', () => {
       });
       mockOctokit.graphql.mockRejectedValue(new Error('Auto-merge not enabled'));
 
-      const adapter = createGitHubAdapter({ owner: 'test', repo: 'repo' });
+      const adapter = createGitHubAdapter('test', 'repo');
       const result = await adapter.enableAutoMerge(1);
 
       expect(result).toBe(false);

@@ -26,7 +26,11 @@ export interface GitHubAdapter {
   /** @deprecated */
   updatePullRequest(prNumber: number, options: UpdatePROptions): Promise<PullRequest>;
   /** @deprecated */
-  enableAutoMerge(prNumber: number, mergeMethod?: 'MERGE' | 'SQUASH' | 'REBASE'): Promise<void>;
+  markPullRequestReady(prNumber: number): Promise<PullRequest>;
+  /** @deprecated */
+  isPullRequestMergeable(prNumber: number): Promise<{ mergeable: boolean; reason?: string }>;
+  /** @deprecated */
+  enableAutoMerge(prNumber: number, mergeMethod?: 'MERGE' | 'SQUASH' | 'REBASE'): Promise<boolean>;
 }
 
 interface CreatePROptions {
@@ -162,7 +166,7 @@ export function createGitHubAdapter(owner: string, repo: string): GitHubAdapter 
       return this.getPullRequest(prNumber);
     },
     
-    async enableAutoMerge(prNumber: number, mergeMethod: 'MERGE' | 'SQUASH' | 'REBASE' = 'SQUASH'): Promise<void> {
+    async markPullRequestReady(prNumber: number): Promise<PullRequest> {
       const { data: pr } = await octokit.pulls.get({
         owner,
         repo,
@@ -170,15 +174,68 @@ export function createGitHubAdapter(owner: string, repo: string): GitHubAdapter 
       });
       
       await octokit.graphql(`
-        mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
-          enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
+        mutation($pullRequestId: ID!) {
+          markPullRequestReadyForReview(input: { pullRequestId: $pullRequestId }) {
             pullRequest { id }
           }
         }
       `, {
         pullRequestId: pr.node_id,
-        mergeMethod,
       });
+      
+      // Fetch and return updated PR
+      return this.getPullRequest(prNumber);
+    },
+    
+    async isPullRequestMergeable(prNumber: number): Promise<{ mergeable: boolean; reason?: string }> {
+      const { data } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: prNumber,
+      });
+      
+      // GitHub's mergeable can be null when status is unknown/checking
+      if (data.mergeable === null) {
+        return { mergeable: false, reason: 'Mergeability status is being computed' };
+      }
+      
+      if (!data.mergeable) {
+        return { 
+          mergeable: false, 
+          reason: data.mergeable_state === 'dirty' ? 'Has merge conflicts' :
+                  data.mergeable_state === 'blocked' ? 'Blocked by branch protection rules' :
+                  data.mergeable_state === 'behind' ? 'Branch is behind base' :
+                  `State: ${data.mergeable_state}`
+        };
+      }
+      
+      return { mergeable: true };
+    },
+    
+    async enableAutoMerge(prNumber: number, mergeMethod: 'MERGE' | 'SQUASH' | 'REBASE' = 'SQUASH'): Promise<boolean> {
+      try {
+        const { data: pr } = await octokit.pulls.get({
+          owner,
+          repo,
+          pull_number: prNumber,
+        });
+        
+        await octokit.graphql(`
+          mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+            enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
+              pullRequest { id }
+            }
+          }
+        `, {
+          pullRequestId: pr.node_id,
+          mergeMethod,
+        });
+        
+        return true;
+      } catch {
+        // Auto-merge might not be enabled on the repository
+        return false;
+      }
     },
   };
 }
@@ -189,8 +246,9 @@ function mapPullRequest(data: any): PullRequest {
     number: data.number,
     title: data.title,
     body: data.body || '',
-    state: data.state,
+    state: data.merged ? 'merged' : data.state,
     draft: data.draft || false,
+    url: data.html_url,
     html_url: data.html_url,
     head: {
       ref: data.head.ref,

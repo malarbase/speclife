@@ -50,10 +50,7 @@ export function registerMergeTool(server: McpServer): void {
         // Load config and create adapters
         const config = await loadConfig(cwd);
         const git = createGitAdapter(cwd);
-        const github = createGitHubAdapter({
-          owner: config.github.owner,
-          repo: config.github.repo,
-        });
+        const github = createGitHubAdapter(config.github.owner, config.github.repo);
         
         // Run merge workflow
         const result = await mergeWorkflow(

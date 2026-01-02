@@ -98,36 +98,26 @@ export function registerImplementTool(server: McpServer): void {
           }
           lines.push('```');
         } else {
-          // Show output
+          // Show message/output
           lines.push('## Output');
           lines.push('');
-          if (result.output) {
+          if (result.message) {
             // Truncate if very long
             const maxOutputLength = 3000;
-            if (result.output.length > maxOutputLength) {
-              lines.push(result.output.slice(0, maxOutputLength));
-              lines.push(`... (truncated, ${result.output.length - maxOutputLength} more characters)`);
+            if (result.message.length > maxOutputLength) {
+              lines.push(result.message.slice(0, maxOutputLength));
+              lines.push(`... (truncated, ${result.message.length - maxOutputLength} more characters)`);
             } else {
-              lines.push(result.output);
+              lines.push(result.message);
             }
           }
           
-          // Tasks completed
-          if (result.tasksCompleted.length > 0) {
+          // Task summary
+          if (result.tasksAttempted > 0 || result.tasksCompleted > 0) {
             lines.push('');
-            lines.push('## Tasks Completed');
-            for (const taskId of result.tasksCompleted) {
-              lines.push(`- [x] ${taskId}`);
-            }
-          }
-          
-          // Tasks failed
-          if (result.tasksFailed && result.tasksFailed.length > 0) {
-            lines.push('');
-            lines.push('## Tasks Failed');
-            for (const { taskId, reason } of result.tasksFailed) {
-              lines.push(`- [ ] ${taskId}: ${reason}`);
-            }
+            lines.push(`## Task Summary`);
+            lines.push(`- Attempted: ${result.tasksAttempted}`);
+            lines.push(`- Completed: ${result.tasksCompleted}`);
           }
         }
         

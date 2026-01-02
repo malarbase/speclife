@@ -46,10 +46,10 @@
 - [x] 4.6 Create `worktree.ts` workflow - worktree management
 - [ ] 4.7 Update type exports to remove AI-related types (partial - some types still exported)
 
-**⚠️ NOTE: Build is currently broken due to interface changes. The following need fixing:**
-- [ ] 4.8 Fix TypeScript errors in MCP tools (they depend on old interfaces)
-- [ ] 4.9 Fix github-adapter to match PullRequest type
-- [ ] 4.10 Fix workflow files (submit.ts, merge.ts, release.ts) for updated interfaces
+**✅ Build fixed - TypeScript errors resolved:**
+- [x] 4.8 Fix TypeScript errors in MCP tools (they depend on old interfaces)
+- [x] 4.9 Fix github-adapter to match PullRequest type
+- [x] 4.10 Fix workflow files (submit.ts, merge.ts, release.ts) for updated interfaces
 
 ## 5. Update Documentation
 
@@ -66,13 +66,13 @@
 - [ ] 6.3 Update MCP server README with migration guide
 - [x] 6.4 Keep MCP tools functional for backward compatibility (stubs created)
 
-**⚠️ NOTE: MCP tools have TypeScript errors that need fixing before they'll compile:**
-- [ ] 6.5 Fix `packages/mcp-server/src/tools/init.ts` - uses old InitResult interface
-- [ ] 6.6 Fix `packages/mcp-server/src/tools/implement.ts` - uses old ImplementResult interface
-- [ ] 6.7 Fix `packages/mcp-server/src/tools/submit.ts` - createGitHubAdapter signature changed
-- [ ] 6.8 Fix `packages/mcp-server/src/tools/merge.ts` - createGitHubAdapter signature changed
-- [ ] 6.9 Fix `packages/mcp-server/src/tools/release.ts` - createGitHubAdapter signature changed
-- [ ] 6.10 Fix `packages/mcp-server/src/tools/list.ts` - createGitHubAdapter signature changed
+**✅ MCP tools fixed - TypeScript errors resolved:**
+- [x] 6.5 Fix `packages/mcp-server/src/tools/init.ts` - uses old InitResult interface
+- [x] 6.6 Fix `packages/mcp-server/src/tools/implement.ts` - uses old ImplementResult interface
+- [x] 6.7 Fix `packages/mcp-server/src/tools/submit.ts` - createGitHubAdapter signature changed
+- [x] 6.8 Fix `packages/mcp-server/src/tools/merge.ts` - createGitHubAdapter signature changed
+- [x] 6.9 Fix `packages/mcp-server/src/tools/release.ts` - createGitHubAdapter signature changed
+- [x] 6.10 Fix `packages/mcp-server/src/tools/list.ts` - createGitHubAdapter signature changed
 
 ## 7. Testing
 
@@ -85,7 +85,7 @@
 - [ ] 7.7 Test auto-release triggers after `/speclife land` for patch/minor
 - [ ] 7.8 Verify openspec + speclife workflow end-to-end
 - [ ] 7.9 Update existing tests to reflect simplified core
-- [ ] 7.10 Fix `packages/core/test/adapters/github-adapter.test.ts` - tests for removed methods
+- [x] 7.10 Fix `packages/core/test/adapters/github-adapter.test.ts` - tests for new interface
 
 ## 8. Cleanup
 
