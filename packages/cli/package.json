@@ -34,7 +34,8 @@
     "vitest": "^2.0.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "templates"
   ],
   "publishConfig": {
     "access": "public"

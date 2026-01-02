@@ -118,30 +118,48 @@ git:
       }
       
       // Copy slash command templates (from templates embedded in package)
-      const slashCommands = ['setup', 'start', 'implement', 'ship', 'land', 'release', 'sync'];
+      const slashCommands = ['setup', 'start', 'implement', 'ship', 'land', 'release', 'sync', 'convert'];
       const templatesDir = join(__dirname, '..', 'templates', 'commands');
+      
+      let copiedCount = 0;
+      let skippedCount = 0;
+      const errors: string[] = [];
       
       for (const cmd of slashCommands) {
         const destPath = join(commandsDir, `${cmd}.md`);
         try {
           await access(destPath);
           if (!options.force) {
+            skippedCount++;
             continue; // Skip existing
           }
         } catch {
           // File doesn't exist, create it
         }
         
-        // Try to copy from templates, or use embedded content
+        // Try to copy from templates
         try {
           const templatePath = join(templatesDir, `${cmd}.md`);
           const content = await readFile(templatePath, 'utf-8');
           await writeFile(destPath, content);
-        } catch {
-          // Template not found, commands should already exist in openspec/commands/speclife/
+          copiedCount++;
+        } catch (err) {
+          errors.push(`${cmd}.md: ${err instanceof Error ? err.message : 'unknown error'}`);
         }
       }
-      console.log(`✓ Slash commands available in ${specDir}/commands/speclife/`);
+      
+      if (copiedCount > 0) {
+        console.log(`✓ Created ${copiedCount} slash command(s) in ${specDir}/commands/speclife/`);
+      }
+      if (skippedCount > 0) {
+        console.log(`  (${skippedCount} existing command(s) skipped, use --force to overwrite)`);
+      }
+      if (errors.length > 0) {
+        console.log(`⚠️  Failed to copy ${errors.length} template(s):`);
+        for (const err of errors) {
+          console.log(`   - ${err}`);
+        }
+      }
       
       // Create speclife.md if it doesn't exist
       const speclifeMdPath = join(cwd, specDir, 'speclife.md');
