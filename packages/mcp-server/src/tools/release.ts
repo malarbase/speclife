@@ -10,13 +10,23 @@ import {
   loadConfig, 
   createGitAdapter, 
   createGitHubAdapter,
-  releaseWorkflow 
+  releaseWorkflow,
+  bumpVersion,
 } from "@speclife/core";
 import { z } from "zod";
 
 const ReleaseArgsSchema = z.object({
   version: z.string().optional().describe(
     "Explicit version to release (e.g., '0.2.0'). If not provided, version is suggested based on commit analysis."
+  ),
+  major: z.boolean().optional().describe(
+    "Force a major version bump (e.g., 0.x.x → 1.0.0). Use for intentional breaking releases."
+  ),
+  minor: z.boolean().optional().describe(
+    "Force a minor version bump (e.g., 0.1.x → 0.2.0)."
+  ),
+  patch: z.boolean().optional().describe(
+    "Force a patch version bump (e.g., 0.1.0 → 0.1.1)."
   ),
   dryRun: z.boolean().optional().describe(
     "Show what would be released without making changes (default: false)"
@@ -29,7 +39,7 @@ const ReleaseArgsSchema = z.object({
 export function registerReleaseTool(server: McpServer): void {
   server.tool(
     "speclife_release",
-    "Create a release PR with version bump and changelog. Analyzes commits since last release to suggest appropriate version. Pre-1.0 friendly: breaking changes bump minor, not major.",
+    "Create a release PR with version bump and changelog. Analyzes commits since last release to suggest appropriate version. Use --major for intentional breaking releases, --minor/--patch to override suggestions.",
     ReleaseArgsSchema.shape,
     async (args) => {
       try {
@@ -44,10 +54,32 @@ export function registerReleaseTool(server: McpServer): void {
           repo: config.github.repo,
         });
         
+        // Determine version from flags
+        let version = parsed.version;
+        let forcedBumpType: 'major' | 'minor' | 'patch' | undefined;
+        
+        if (!version) {
+          // Check for forced bump type flags
+          if (parsed.major) {
+            forcedBumpType = 'major';
+          } else if (parsed.minor) {
+            forcedBumpType = 'minor';
+          } else if (parsed.patch) {
+            forcedBumpType = 'patch';
+          }
+          
+          // If forced bump, calculate version now
+          if (forcedBumpType) {
+            const latestTag = await git.getLatestTag();
+            const previousVersion = latestTag ? latestTag.replace(/^v/, '') : '0.0.0';
+            version = bumpVersion(previousVersion, forcedBumpType);
+          }
+        }
+        
         // Run workflow
         const result = await releaseWorkflow(
           {
-            version: parsed.version,
+            version,
             dryRun: parsed.dryRun,
             skipChangelog: parsed.skipChangelog,
           },
@@ -62,7 +94,15 @@ export function registerReleaseTool(server: McpServer): void {
         }
         
         lines.push(`## Version: ${result.previousVersion} → ${result.version}`);
-        lines.push(`Bump type: **${result.bumpType}**`);
+        
+        // Show if bump was forced or auto-detected
+        if (forcedBumpType) {
+          lines.push(`Bump type: **${forcedBumpType}** (forced via --${forcedBumpType})`);
+        } else if (parsed.version) {
+          lines.push(`Bump type: **${result.bumpType}** (explicit version provided)`);
+        } else {
+          lines.push(`Bump type: **${result.bumpType}** (auto-detected from commits)`);
+        }
         lines.push('');
         
         // Commits summary
@@ -111,6 +151,8 @@ export function registerReleaseTool(server: McpServer): void {
           lines.push('Run `speclife_release` without `--dry-run` to create the release PR.');
           if (parsed.version) {
             lines.push(`Using explicit version: ${parsed.version}`);
+          } else if (forcedBumpType) {
+            lines.push(`Forced ${forcedBumpType} bump → ${result.version}`);
           } else {
             lines.push(`Suggested version: ${result.version} (based on commit analysis)`);
           }
@@ -129,4 +171,3 @@ export function registerReleaseTool(server: McpServer): void {
     }
   );
 }
-

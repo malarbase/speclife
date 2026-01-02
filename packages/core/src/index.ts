@@ -10,9 +10,12 @@ export * from './types.js';
 // Re-export config
 export {
   loadConfig,
+  isAutoReleaseAllowed,
   type SpecLifeConfig,
   type WorktreeConfig,
   type EnvironmentBootstrapConfig,
+  type ReleaseConfig,
+  type ReleaseAutoConfig,
 } from './config.js';
 
 // Re-export adapters
