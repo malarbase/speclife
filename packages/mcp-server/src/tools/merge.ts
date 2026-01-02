@@ -129,19 +129,28 @@ export function registerMergeTool(server: McpServer): void {
               lines.push('');
               
               if (autoReleaseAllowed) {
-                // Auto-release!
+                // Auto-release with auto-merge for patch/minor
+                const enableAutoMerge = bumpType !== 'major';
                 lines.push(`✨ Auto-release enabled for ${bumpType} bumps. Creating release PR...`);
                 lines.push('');
                 
                 const releaseResult = await releaseWorkflow(
-                  { dryRun: false },
+                  { dryRun: false, autoMerge: enableAutoMerge },
                   { git: mainGit, github, repoPath: mainRepoPath }
                 );
                 
                 lines.push(`✓ Created release PR: ${releaseResult.prUrl}`);
                 lines.push(`   Version: ${releaseResult.previousVersion} → ${releaseResult.version}`);
-                lines.push('');
-                lines.push('**Next:** Review and merge the release PR to publish.');
+                
+                if (releaseResult.autoMergeEnabled) {
+                  lines.push(`   🤖 Auto-merge enabled - will merge when CI passes`);
+                  lines.push('');
+                  lines.push('**Release will happen automatically once CI passes!**');
+                } else {
+                  lines.push('');
+                  lines.push('**Next:** Review and merge the release PR to publish.');
+                  lines.push('(Auto-merge not available - enable in repo settings for fully automated releases)');
+                }
               } else {
                 // Manual release required (major bump)
                 lines.push(`⚠️ **Manual release required** (${bumpType} bump)`);

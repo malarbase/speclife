@@ -143,6 +143,8 @@ export interface ReleaseOptions {
   dryRun?: boolean;
   /** Skip changelog generation */
   skipChangelog?: boolean;
+  /** Enable auto-merge on the release PR (requires repo settings to allow auto-merge) */
+  autoMerge?: boolean;
 }
 
 /** Result of the release workflow */
@@ -161,4 +163,6 @@ export interface ReleaseResult {
   prUrl?: string;
   /** Release branch name */
   branch?: string;
+  /** Whether auto-merge was enabled on the PR */
+  autoMergeEnabled?: boolean;
 }

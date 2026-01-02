@@ -36,6 +36,9 @@ export interface GitHubAdapter {
   
   /** Mark a draft PR as ready for review */
   markPullRequestReady(number: number): Promise<PullRequest>;
+  
+  /** Enable auto-merge for a PR (requires repo settings to allow auto-merge) */
+  enableAutoMerge(number: number, method?: 'MERGE' | 'SQUASH' | 'REBASE'): Promise<boolean>;
 }
 
 interface GitHubAdapterOptions {
@@ -201,6 +204,47 @@ export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapte
         mergeable: data.mergeable,
         draft: data.draft ?? false,
       };
+    },
+    
+    async enableAutoMerge(number: number, method: 'MERGE' | 'SQUASH' | 'REBASE' = 'SQUASH'): Promise<boolean> {
+      // Get the node ID for the PR
+      const { data: prData } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: number,
+      });
+      
+      const nodeId = prData.node_id;
+      
+      try {
+        // Use GraphQL mutation to enable auto-merge
+        await octokit.graphql(`
+          mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+            enablePullRequestAutoMerge(input: { 
+              pullRequestId: $pullRequestId,
+              mergeMethod: $mergeMethod
+            }) {
+              pullRequest {
+                autoMergeRequest {
+                  enabledAt
+                }
+              }
+            }
+          }
+        `, { 
+          pullRequestId: nodeId,
+          mergeMethod: method,
+        });
+        
+        return true;
+      } catch (error) {
+        // Auto-merge might fail if:
+        // - Repo doesn't have auto-merge enabled
+        // - Branch protection rules don't allow it
+        // - Required checks haven't been set up
+        // In these cases, we silently return false rather than failing
+        return false;
+      }
     },
   };
 }

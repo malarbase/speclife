@@ -182,6 +182,7 @@ export function createMockGitHubAdapter(overrides: Partial<MockGitHubAdapter> = 
       draft: false,
       mergeable: true,
     }),
+    enableAutoMerge: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }
@@ -192,5 +193,6 @@ export interface MockGitHubAdapter {
   findPullRequestByBranch: ReturnType<typeof vi.fn>;
   mergePullRequest: ReturnType<typeof vi.fn>;
   markPullRequestReady: ReturnType<typeof vi.fn>;
+  enableAutoMerge: ReturnType<typeof vi.fn>;
 }
 
