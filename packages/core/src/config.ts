@@ -46,21 +46,34 @@ export interface ReleaseConfig {
   auto?: ReleaseAutoConfig | boolean;
 }
 
+/** Git configuration (new minimal config) */
+export interface GitConfig {
+  /** Base branch for new changes (default: "main") */
+  baseBranch?: string;
+  /** Branch prefix for change branches (default: "spec/") */
+  branchPrefix?: string;
+  /** Directory for worktrees (default: "worktrees") */
+  worktreeDir?: string;
+}
+
 /** SpecLife configuration schema */
 export interface SpecLifeConfig {
   /** OpenSpec directory location (default: "openspec") */
   specDir: string;
   
-  /** AI provider to use */
+  /** Git configuration (new minimal config) */
+  git?: GitConfig;
+  
+  /** AI provider to use (deprecated - use slash commands) */
   aiProvider: 'claude' | 'openai' | 'gemini';
   
-  /** AI model identifier */
+  /** AI model identifier (deprecated - use slash commands) */
   aiModel: string;
   
-  /** Implementation mode for speclife_implement (default: "claude-cli") */
+  /** Implementation mode for speclife_implement (deprecated - use /openspec-apply) */
   implementMode: ImplementMode;
   
-  /** GitHub configuration */
+  /** GitHub configuration (deprecated - owner/repo auto-detected) */
   github: {
     owner: string;
     repo: string;
@@ -139,6 +152,11 @@ export function isAutoReleaseAllowed(
 /** Default configuration values */
 const defaults: Partial<SpecLifeConfig> = {
   specDir: 'openspec',
+  git: {
+    baseBranch: 'main',
+    branchPrefix: 'spec/',
+    worktreeDir: 'worktrees',
+  },
   aiProvider: 'claude',
   aiModel: 'claude-sonnet-4-20250514',
   implementMode: 'claude-cli',
@@ -192,6 +210,10 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<SpecLifeC
   const config: SpecLifeConfig = {
     ...defaults,
     ...fileConfig,
+    git: {
+      ...defaults.git,
+      ...fileConfig.git,
+    },
     github: {
       ...defaults.github,
       ...fileConfig.github,

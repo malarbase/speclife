@@ -40,10 +40,10 @@ export interface GitAdapter {
   // Worktree operations (Phase 4)
   
   /** Create a worktree for parallel development */
-  createWorktree(path: string, branch: string): Promise<void>;
+  createWorktree(path: string, branch: string, baseBranch?: string): Promise<void>;
   
   /** Remove a worktree */
-  removeWorktree(path: string): Promise<void>;
+  removeWorktree(path: string, force?: boolean): Promise<void>;
   
   /** List all worktrees */
   listWorktrees(): Promise<Array<{ path: string; branch: string }>>;
@@ -143,12 +143,20 @@ export function createGitAdapter(repoPath: string): GitAdapter {
     
     // Worktree operations (Phase 4)
     
-    async createWorktree(path: string, branch: string): Promise<void> {
-      await git.raw(['worktree', 'add', path, '-b', branch]);
+    async createWorktree(path: string, branch: string, baseBranch?: string): Promise<void> {
+      if (baseBranch) {
+        await git.raw(['worktree', 'add', path, '-b', branch, baseBranch]);
+      } else {
+        await git.raw(['worktree', 'add', path, '-b', branch]);
+      }
     },
     
-    async removeWorktree(path: string): Promise<void> {
-      await git.raw(['worktree', 'remove', path, '--force']);
+    async removeWorktree(path: string, force = false): Promise<void> {
+      if (force) {
+        await git.raw(['worktree', 'remove', path, '--force']);
+      } else {
+        await git.raw(['worktree', 'remove', path]);
+      }
     },
     
     async listWorktrees(): Promise<Array<{ path: string; branch: string }>> {

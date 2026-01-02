@@ -1,89 +1,102 @@
 /**
- * GitHub adapter using Octokit
+ * GitHub adapter - DEPRECATED
+ * 
+ * This adapter is deprecated. Use one of these alternatives instead:
+ * - @github MCP server for AI-assisted GitHub operations
+ * - `gh` CLI for command-line GitHub operations
+ * - `/speclife ship` and `/speclife land` slash commands
+ * 
+ * The adapter remains functional for backward compatibility but will be
+ * removed in a future version.
  */
 
 import { Octokit } from '@octokit/rest';
-import { SpecLifeError, ErrorCodes, type PullRequest } from '../types.js';
+import { type PullRequest } from '../types.js';
 
-/** GitHub operations interface */
+/** @deprecated Use @github MCP or gh CLI instead */
 export interface GitHubAdapter {
-  /** Create a pull request */
-  createPullRequest(params: {
-    title: string;
-    body: string;
-    head: string;
-    base: string;
-    draft?: boolean;
-  }): Promise<PullRequest>;
-  
-  /** Get pull request by branch */
+  /** @deprecated */
+  createPullRequest(options: CreatePROptions): Promise<PullRequest>;
+  /** @deprecated */
+  getPullRequest(prNumber: number): Promise<PullRequest>;
+  /** @deprecated */
   getPullRequestByBranch(branch: string): Promise<PullRequest | null>;
-  
-  /** Get pull request by number */
-  getPullRequest(number: number): Promise<PullRequest>;
-  
-  /** Get pull request diff */
-  getPullRequestDiff(number: number): Promise<string>;
-  
-  /** Merge pull request */
-  mergePullRequest(number: number, method?: 'merge' | 'squash' | 'rebase'): Promise<void>;
-  
-  /** Check if PR is mergeable */
-  isPullRequestMergeable(number: number): Promise<{
-    mergeable: boolean;
-    reason?: string;
-  }>;
-  
-  /** Mark a draft PR as ready for review */
-  markPullRequestReady(number: number): Promise<PullRequest>;
-  
-  /** Enable auto-merge for a PR (requires repo settings to allow auto-merge) */
-  enableAutoMerge(number: number, method?: 'MERGE' | 'SQUASH' | 'REBASE'): Promise<boolean>;
+  /** @deprecated */
+  mergePullRequest(prNumber: number, mergeMethod?: 'merge' | 'squash' | 'rebase'): Promise<void>;
+  /** @deprecated */
+  updatePullRequest(prNumber: number, options: UpdatePROptions): Promise<PullRequest>;
+  /** @deprecated */
+  enableAutoMerge(prNumber: number, mergeMethod?: 'MERGE' | 'SQUASH' | 'REBASE'): Promise<void>;
 }
 
-interface GitHubAdapterOptions {
-  owner: string;
-  repo: string;
-  token?: string;
+interface CreatePROptions {
+  title: string;
+  body: string;
+  head: string;
+  base: string;
+  draft?: boolean;
 }
+
+interface UpdatePROptions {
+  title?: string;
+  body?: string;
+  draft?: boolean;
+}
+
+const DEPRECATION_WARNING = `
+⚠️  DEPRECATION WARNING: createGitHubAdapter is deprecated.
+   
+   Use one of these alternatives:
+   - @github MCP server for AI-assisted operations
+   - \`gh\` CLI for command-line operations
+   - /speclife ship and /speclife land slash commands
+   
+   This adapter will be removed in a future version.
+`;
 
 /**
  * Create a GitHub adapter
+ * 
+ * @deprecated Use @github MCP or gh CLI instead
  */
-export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapter {
-  const token = options.token ?? process.env.GITHUB_TOKEN;
+export function createGitHubAdapter(owner: string, repo: string): GitHubAdapter {
+  // Show deprecation warning once per adapter creation
+  console.warn(DEPRECATION_WARNING);
   
+  const token = process.env.GITHUB_TOKEN;
   if (!token) {
-    throw new SpecLifeError(
-      ErrorCodes.MISSING_TOKEN,
-      'GITHUB_TOKEN environment variable is required for GitHub operations',
-      { variable: 'GITHUB_TOKEN' }
+    throw new Error(
+      'GITHUB_TOKEN environment variable is required.\n' +
+      'Consider using /speclife ship or /speclife land slash commands instead,\n' +
+      'which use @github MCP or gh CLI and do not require token configuration.'
     );
   }
   
   const octokit = new Octokit({ auth: token });
-  const { owner, repo } = options;
   
   return {
-    async createPullRequest(params): Promise<PullRequest> {
+    async createPullRequest(options: CreatePROptions): Promise<PullRequest> {
       const { data } = await octokit.pulls.create({
         owner,
         repo,
-        title: params.title,
-        body: params.body,
-        head: params.head,
-        base: params.base,
-        draft: params.draft,
+        title: options.title,
+        body: options.body,
+        head: options.head,
+        base: options.base,
+        draft: options.draft,
       });
       
-      return {
-        number: data.number,
-        url: data.html_url,
-        title: data.title,
-        state: data.state as 'open' | 'closed',
-        mergeable: data.mergeable,
-        draft: data.draft ?? false,
-      };
+      return mapPullRequest(data);
+    },
+    
+    async getPullRequest(prNumber: number): Promise<PullRequest> {
+      const { data } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: prNumber,
+      });
+      
+      return mapPullRequest(data);
     },
     
     async getPullRequestByBranch(branch: string): Promise<PullRequest | null> {
@@ -98,153 +111,97 @@ export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapte
         return null;
       }
       
-      const pr = data[0];
-      return {
-        number: pr.number,
-        url: pr.html_url,
-        title: pr.title,
-        state: pr.state as 'open' | 'closed',
-        mergeable: null, // List endpoint doesn't return mergeable; use getPullRequest for full details
-        draft: pr.draft ?? false,
-      };
+      return mapPullRequest(data[0]);
     },
     
-    async getPullRequest(number: number): Promise<PullRequest> {
-      const { data } = await octokit.pulls.get({
-        owner,
-        repo,
-        pull_number: number,
-      });
-      
-      return {
-        number: data.number,
-        url: data.html_url,
-        title: data.title,
-        state: data.merged ? 'merged' : (data.state as 'open' | 'closed'),
-        mergeable: data.mergeable,
-        draft: data.draft ?? false,
-      };
-    },
-    
-    async getPullRequestDiff(number: number): Promise<string> {
-      const { data } = await octokit.pulls.get({
-        owner,
-        repo,
-        pull_number: number,
-        mediaType: {
-          format: 'diff',
-        },
-      });
-      
-      // When requesting diff format, data is returned as a string
-      return data as unknown as string;
-    },
-    
-    async mergePullRequest(number: number, method: 'merge' | 'squash' | 'rebase' = 'merge'): Promise<void> {
+    async mergePullRequest(prNumber: number, mergeMethod: 'merge' | 'squash' | 'rebase' = 'squash'): Promise<void> {
       await octokit.pulls.merge({
         owner,
         repo,
-        pull_number: number,
-        merge_method: method,
+        pull_number: prNumber,
+        merge_method: mergeMethod,
       });
     },
     
-    async isPullRequestMergeable(number: number): Promise<{ mergeable: boolean; reason?: string }> {
-      const { data } = await octokit.pulls.get({
-        owner,
-        repo,
-        pull_number: number,
-      });
-      
-      if (data.mergeable === false) {
-        return { mergeable: false, reason: 'Conflicts or checks failing' };
-      }
-      
-      if (data.draft) {
-        return { mergeable: false, reason: 'PR is still a draft' };
-      }
-      
-      return { mergeable: data.mergeable ?? false };
-    },
-    
-    async markPullRequestReady(number: number): Promise<PullRequest> {
-      // The REST API doesn't support marking PRs ready, so we use GraphQL
-      // First, get the node ID for the PR
-      const { data: prData } = await octokit.pulls.get({
-        owner,
-        repo,
-        pull_number: number,
-      });
-      
-      const nodeId = prData.node_id;
-      
-      // Use GraphQL mutation to mark ready
-      await octokit.graphql(`
-        mutation($id: ID!) {
-          markPullRequestReadyForReview(input: { pullRequestId: $id }) {
-            pullRequest {
-              id
-            }
-          }
-        }
-      `, { id: nodeId });
-      
-      // Fetch updated PR
-      const { data } = await octokit.pulls.get({
-        owner,
-        repo,
-        pull_number: number,
-      });
-      
-      return {
-        number: data.number,
-        url: data.html_url,
-        title: data.title,
-        state: data.merged ? 'merged' : (data.state as 'open' | 'closed'),
-        mergeable: data.mergeable,
-        draft: data.draft ?? false,
-      };
-    },
-    
-    async enableAutoMerge(number: number, method: 'MERGE' | 'SQUASH' | 'REBASE' = 'SQUASH'): Promise<boolean> {
-      // Get the node ID for the PR
-      const { data: prData } = await octokit.pulls.get({
-        owner,
-        repo,
-        pull_number: number,
-      });
-      
-      const nodeId = prData.node_id;
-      
-      try {
-        // Use GraphQL mutation to enable auto-merge
-        await octokit.graphql(`
-          mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
-            enablePullRequestAutoMerge(input: { 
-              pullRequestId: $pullRequestId,
-              mergeMethod: $mergeMethod
-            }) {
-              pullRequest {
-                autoMergeRequest {
-                  enabledAt
-                }
-              }
-            }
-          }
-        `, { 
-          pullRequestId: nodeId,
-          mergeMethod: method,
+    async updatePullRequest(prNumber: number, options: UpdatePROptions): Promise<PullRequest> {
+      // Handle draft status separately (requires GraphQL)
+      if (options.draft === false) {
+        // Mark as ready for review using GraphQL
+        const { data: pr } = await octokit.pulls.get({
+          owner,
+          repo,
+          pull_number: prNumber,
         });
         
-        return true;
-      } catch (error) {
-        // Auto-merge might fail if:
-        // - Repo doesn't have auto-merge enabled
-        // - Branch protection rules don't allow it
-        // - Required checks haven't been set up
-        // In these cases, we silently return false rather than failing
-        return false;
+        await octokit.graphql(`
+          mutation($pullRequestId: ID!) {
+            markPullRequestReadyForReview(input: { pullRequestId: $pullRequestId }) {
+              pullRequest { id }
+            }
+          }
+        `, {
+          pullRequestId: pr.node_id,
+        });
       }
+      
+      // Update other fields
+      const updateData: Record<string, unknown> = {};
+      if (options.title) updateData.title = options.title;
+      if (options.body) updateData.body = options.body;
+      
+      if (Object.keys(updateData).length > 0) {
+        await octokit.pulls.update({
+          owner,
+          repo,
+          pull_number: prNumber,
+          ...updateData,
+        });
+      }
+      
+      // Fetch and return updated PR
+      return this.getPullRequest(prNumber);
+    },
+    
+    async enableAutoMerge(prNumber: number, mergeMethod: 'MERGE' | 'SQUASH' | 'REBASE' = 'SQUASH'): Promise<void> {
+      const { data: pr } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: prNumber,
+      });
+      
+      await octokit.graphql(`
+        mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+          enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
+            pullRequest { id }
+          }
+        }
+      `, {
+        pullRequestId: pr.node_id,
+        mergeMethod,
+      });
     },
   };
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapPullRequest(data: any): PullRequest {
+  return {
+    number: data.number,
+    title: data.title,
+    body: data.body || '',
+    state: data.state,
+    draft: data.draft || false,
+    html_url: data.html_url,
+    head: {
+      ref: data.head.ref,
+      sha: data.head.sha,
+    },
+    base: {
+      ref: data.base.ref,
+    },
+    merged: data.merged || false,
+    mergeable: data.mergeable,
+    mergeable_state: data.mergeable_state,
+  };
+}
+
