@@ -23,9 +23,8 @@
 - [x] 5.1 Remove `versionBump` parameter from `speclife_merge` schema
 - [x] 5.2 Remove `createRelease` parameter from schema
 - [x] 5.3 Update output message to indicate CI handles releases
-- [x] 5.4 Remove unused adapter creation (claudeCli, openspec for version analysis)
+- [x] 5.4 Remove unused adapter creation
 
-## 6. Add GitHub Action for Releases
-- [x] 6.1 Create `.github/workflows/release.yml` with release-please
-- [x] 6.2 Add `release-please-config.json` for monorepo configuration
-- [x] 6.3 Add `.release-please-manifest.json` with current version
+## 6. Add Publish Workflow (simplified)
+- [x] 6.1 Create `.github/workflows/publish.yml` (publish on release)
+- [x] 6.2 Remove release-please config files (not needed)
