@@ -235,10 +235,12 @@ export async function submitWorkflow(
 
   onProgress?.({ type: 'step_completed', message: 'Submit complete' });
 
+  // pullRequest is guaranteed non-null at this point
+  // (either from getPullRequestByBranch or createPullRequest)
   return {
     commitSha,
     branch,
-    pullRequest,
+    pullRequest: pullRequest!,
     prCreated,
     prMarkedReady,
     archived,

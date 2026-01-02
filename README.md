@@ -1,244 +1,210 @@
 # SpecLife
 
-**Bring specifications to life.**
+**Git and GitHub automation for spec-driven development.**
 
-SpecLife is an MCP server that automates spec-driven development workflows. Instead of learning CLI commands, developers talk to their AI assistant (Claude, Cursor), which orchestrates the entire flow from change proposal to merged PR.
+SpecLife complements [OpenSpec](https://github.com/malarbase/openspec) by automating git/GitHub workflows. While OpenSpec manages specs (proposals, validation, implementation guidance), SpecLife handles worktrees, branches, PRs, merging, and releases.
+
+## Quick Start
+
+```bash
+# Install CLI
+npm install -g @speclife/cli
+
+# Initialize your project
+speclife init
+
+# The AI does the rest via slash commands:
+/speclife start "Add user authentication"   # Creates worktree + branch
+/openspec-apply                              # Implement (via OpenSpec)
+/speclife ship                               # Commit, push, create PR
+/speclife land                               # Merge, cleanup, auto-release
+```
 
 ## How It Works
 
+SpecLife uses **slash commands** that guide AI assistants through git/GitHub operations:
+
 ```
-You: "Create a change to add user authentication"
-AI: [calls speclife_init] ✓ Created worktree at ./worktrees/add-user-auth/
-    Scaffolded proposal at worktrees/add-user-auth/openspec/changes/add-user-auth/
+You: /speclife start "Add OAuth authentication"
+AI: Creating worktree for oauth-auth...
+    → Created worktree: ./worktrees/oauth-auth/
+    → Created branch: spec/oauth-auth
+    → Run /openspec-proposal to create the spec
 
-You: "Here's what I want: OAuth2 with Google and GitHub providers"
-AI: [updates proposal.md and tasks.md]
-    Ready to implement. Should I start?
+You: [define proposal in proposal.md]
 
-You: "Yes, implement it"
-AI: [calls speclife_implement]
-    Reading specs and codebase context...
-    Implementing task 1.1: Add OAuth configuration...
-    ✓ Created src/auth/oauth-config.ts
-    ✓ Modified src/routes/auth.ts
-    Running tests... 2 failures
-    Analyzing failures and fixing...
-    Running tests... ✓ All 15 tests passing
+You: /openspec-apply
+AI: [implements tasks, runs tests]
 
-You: "Ship it"
-AI: [calls speclife_submit]
-    ✓ Committed: "feat: add OAuth2 authentication"
-    ✓ Pushed to origin/spec/add-user-auth
-    ✓ PR #42 created: https://github.com/you/repo/pull/42
-    ✓ Archived change to openspec/changes/archive/
+You: /speclife ship
+AI: Validating spec... ✓
+    → Archived spec to openspec/changes/archive/
+    → Committed: "feat: add OAuth authentication"
+    → Pushed to origin/spec/oauth-auth
+    → Created PR #42: https://github.com/you/repo/pull/42
 
-You: "Merge when CI passes"
-AI: [calls speclife_merge]
-    ✓ PR #42 merged (squash)
-    ✓ Synced main with latest changes
+You: /speclife land
+AI: → Merged PR #42 (squash)
+    → Synced main with latest changes
+    → Removed worktree ./worktrees/oauth-auth/
     
     📊 Release Analysis
     Suggested bump: minor (0.1.7 → 0.2.0)
     
     ✨ Auto-release enabled. Creating release PR...
-    ✓ Created release PR #43
+    → Created release PR #43
     🤖 Auto-merge enabled - will merge when CI passes
-    
-    Release will happen automatically!
 ```
 
-## Features
+## Slash Commands
 
-- **MCP-Native**: Primary interface is AI assistants (Claude Desktop, Cursor)
-- **OpenSpec Compatible**: Works with any project using OpenSpec conventions
-- **Full Lifecycle**: Init → Implement → Test → Submit → Merge
-- **AI-Powered Implementation**: Claude generates code from specs
-- **Git + GitHub Integration**: Branch management, PR creation, merging
+| Command | Purpose | GitHub Operations |
+|---------|---------|-------------------|
+| `/speclife setup` | AI-guided discovery to populate `openspec/speclife.md` | — |
+| `/speclife start` | Create worktree + branch, optionally scaffold proposal | — |
+| `/speclife ship` | Archive spec, commit, push, create PR | Via @github MCP or `gh` CLI |
+| `/speclife land` | Merge PR, cleanup worktree, auto-release | Via @github MCP or `gh` CLI |
+| `/speclife release` | Manual release (for major versions) | Via @github MCP or `gh` CLI |
+
+**Note:** For implementation, use `/openspec-apply` directly. SpecLife focuses on git/GitHub automation.
+
+## CLI Commands
+
+```bash
+speclife init                        # Configure project for AI editors
+speclife worktree create <change-id> # Create worktree + branch
+speclife worktree rm <change-id>     # Remove worktree + branch
+speclife worktree list               # List active worktrees
+speclife status [change-id]          # Show change status
+speclife version                     # Show version
+```
 
 ## Installation
 
-### Option A: Install from npm (Recommended)
+### Option A: npm (Recommended)
 
 ```bash
-# Install CLI and MCP server globally
-npm install -g @speclife/cli @speclife/mcp-server
-
-# Verify installation
-speclife --version
-speclife-mcp --version
+npm install -g @speclife/cli
+speclife init
 ```
 
-### Option B: Install from Source (Development)
+### Option B: From Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/malarbase/speclife.git
 cd speclife
-
-# Install dependencies and build
-npm install
-npm run build
-
-# Link packages globally for development
+npm install && npm run build
 npm link -w packages/cli
-npm link -w packages/mcp-server
-
-# Now available as:
-speclife --help
-speclife-mcp  # Starts MCP server
 ```
 
-### Option C: Direct Path (No Global Install)
+## Project Setup
 
-Use the built files directly in your MCP configuration (see Setup sections below).
+Run `speclife init` in your project root:
 
-## Setup with Claude Desktop
+```bash
+$ speclife init
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+Detecting project settings...
+✓ Found openspec/ directory
+✓ Detected git base branch: main
 
-```json
-{
-  "mcpServers": {
-    "speclife": {
-      "command": "speclife-mcp",
-      "env": {
-        "GITHUB_TOKEN": "ghp_xxxx",
-        "ANTHROPIC_API_KEY": "sk-ant-xxxx"
-      }
-    }
-  }
-}
+Configuring editors:
+  ✓ Cursor      → .cursor/commands/speclife/
+  ✓ Claude Code → .claude/commands/speclife/
+
+✓ Created .specliferc.yaml (minimal)
+✓ Created openspec/commands/speclife/*.md (tracked)
+✓ Created openspec/speclife.md (template)
+✓ Created .github/workflows/speclife-release.yml
+
+⚠️  Run /speclife setup to auto-detect project commands
 ```
 
-Or if using direct path (Option C):
-
-```json
-{
-  "mcpServers": {
-    "speclife": {
-      "command": "node",
-      "args": ["/path/to/speclife/packages/mcp-server/dist/index.js"],
-      "env": {
-        "GITHUB_TOKEN": "ghp_xxxx",
-        "ANTHROPIC_API_KEY": "sk-ant-xxxx"
-      }
-    }
-  }
-}
-```
-
-## Setup with Cursor
-
-Add to `.cursor/mcp.json` in your workspace:
-
-```json
-{
-  "mcpServers": {
-    "speclife": {
-      "command": "speclife-mcp",
-      "env": {
-        "GITHUB_TOKEN": "ghp_xxxx"
-      }
-    }
-  }
-}
-```
+Then run `/speclife setup` in your AI editor to auto-detect project commands.
 
 ## Configuration
 
-Create `.specliferc.yaml` in your project root:
+### `.specliferc.yaml` (minimal CLI config)
 
 ```yaml
 specDir: openspec
-aiProvider: claude
-aiModel: claude-sonnet-4-20250514
 
-github:
-  owner: your-username
-  repo: your-repo
+git:
   baseBranch: main
-
-testCommand: npm test
-
-# Auto-release configuration (optional)
-release:
-  auto:
-    patch: true   # Auto-create release PR for patch bumps
-    minor: true   # Auto-create release PR for minor bumps
-    major: false  # Require manual speclife_release for major
+  branchPrefix: spec/
+  worktreeDir: worktrees
 ```
 
-## MCP Tools
+### `openspec/speclife.md` (AI context)
 
-| Tool | Description |
-|------|-------------|
-| `speclife_init` | Create worktree and scaffold change proposal (worktree is default) |
-| `speclife_status` | Show current change state and progress |
-| `speclife_list` | List all active changes across worktrees |
-| `speclife_implement` | AI-driven implementation with internal test loop (implement → test → fix → repeat) |
-| `speclife_submit` | Commit, push, create PR, and archive the change |
-| `speclife_merge` | Merge PR on GitHub, cleanup worktree, auto-create release PR |
-| `speclife_release` | Create a release PR with version bump and changelog |
+```markdown
+# SpecLife Configuration
 
-## Workflow
+## Commands
+- **Test:** `npm test`
+- **Build:** `npm run build`
+- **Lint:** `npm run lint`
 
-```
-┌─────────────┐     ┌─────────────────────────────────────┐     ┌──────────────┐     ┌─────────────┐     ┌─────────────┐
-│ speclife_   │     │         speclife_implement          │     │  speclife_   │     │  speclife_  │     │  speclife_  │
-│    init     │ ──▶ │  ┌─────────────────────────────┐   │ ──▶ │    submit    │ ──▶ │    merge    │ ──▶ │   release   │
-│             │     │  │ implement → test → fix loop │   │     │              │     │             │     │  (auto/manual)
-└─────────────┘     │  └─────────────────────────────┘   │     └──────────────┘     └─────────────┘     └─────────────┘
-                    └─────────────────────────────────────┘
-  Creates branch      AI implements code, runs tests,        Commits, pushes,      Merges PR,          Creates release
-  + scaffolds         fixes failures until passing           creates PR,           auto-triggers       PR, bumps version,
-  proposal                                                   archives change       release for         publishes to npm
-                                                                                   patch/minor
+## Release Policy
+- **Auto-release:** patch and minor versions
+- **Manual release:** major versions (breaking changes)
+
+## Context Files
+When implementing changes, always read:
+- `openspec/project.md` - project context and conventions
+- `openspec/AGENTS.md` - agent guidelines
 ```
 
-### Release Flow
+## Worktrees
 
-After `speclife_merge`, if auto-release is enabled:
+SpecLife uses git worktrees to keep `main` clean and enable parallel development:
+
+```
+./                              ← main worktree (stays on main, clean)
+./worktrees/add-auth/           ← worktree for add-auth
+./worktrees/fix-performance/    ← worktree for fix-performance
+```
+
+Benefits:
+- Main worktree stays on `main` branch
+- Work on multiple changes in parallel
+- No branch switching in main directory
+
+## Release Flow
+
+After `/speclife land`:
+
 1. Analyzes commits since last tag
 2. Suggests version bump (patch/minor/major)
 3. For patch/minor: auto-creates release PR with auto-merge
-4. For major: prompts for manual `speclife_release --major`
-5. When release PR merges → GitHub Release created → npm publish
+4. For major: prompts for `/speclife release --major`
+5. When release PR merges → GitHub Actions creates tag + release
 
-## Worktrees (Default Behavior)
+## Integration with OpenSpec
 
-SpecLife uses git worktrees by default, keeping `main` clean and enabling parallel development:
+| Tool | Responsibility |
+|------|----------------|
+| **OpenSpec** | Spec management (proposals, validation, implementation guidance, archiving) |
+| **SpecLife** | Git/GitHub automation (worktrees, branches, PRs, merging, releases) |
+
+SpecLife commands internally use OpenSpec for spec-related operations:
+- `/speclife ship` calls `openspec validate` and `openspec archive`
+- `/speclife start` can invoke `/openspec-proposal` for scaffolding
+
+## MCP Server (Deprecated)
+
+The MCP server (`@speclife/mcp-server`) is deprecated in favor of slash commands. It remains available for:
+- CI/automation scenarios
+- Editors without slash command support
+
+Migration: Replace `speclife_*` tool calls with equivalent `/speclife` slash commands.
 
 ```bash
-# Each init creates a new worktree (default)
+# Old (MCP tool)
 speclife_init --changeId add-auth
-speclife_init --changeId fix-performance
 
-# Directory structure:
-# ./                           ← main worktree (stays on main branch, clean)
-# ./worktrees/add-auth/        ← worktree for add-auth
-# ./worktrees/fix-performance/ ← worktree for fix-performance
-```
-
-**Benefits:**
-- Main worktree stays on `main` branch, always clean
-- Multiple changes can be worked on in parallel
-- AI can implement different specs simultaneously
-- No branch switching needed in main directory
-
-**Opt-out:** Use `--no-worktree` to create a branch in the current worktree instead:
-```bash
-speclife_init --changeId quick-fix --no-worktree
-```
-
-## CLI (for CI/Scripts)
-
-```bash
-# Install globally
-npm install -g @speclife/cli
-
-# Use in CI
-speclife submit add-feature --yes
-speclife merge add-feature --squash
+# New (slash command)
+/speclife start "Add authentication"
 ```
 
 ## Requirements
@@ -246,8 +212,11 @@ speclife merge add-feature --squash
 - Node.js >= 20.x
 - Git
 - Project with OpenSpec structure
-- `GITHUB_TOKEN` environment variable
-- `ANTHROPIC_API_KEY` environment variable (for AI features)
+- AI editor with slash commands (Cursor, Claude Code)
+
+For GitHub operations, one of:
+- @github MCP configured in your editor
+- `gh` CLI installed and authenticated
 
 ## Project Structure
 
@@ -255,41 +224,30 @@ speclife merge add-feature --squash
 speclife/
 ├── packages/
 │   ├── core/           # Shared business logic
-│   ├── mcp-server/     # MCP server (primary interface)
-│   └── cli/            # CLI wrapper (for CI)
+│   ├── mcp-server/     # MCP server (deprecated)
+│   └── cli/            # CLI for git operations
 ├── openspec/           # Specifications
-│   ├── project.md      # Project context
-│   └── specs/          # Requirements
-└── package.json        # Workspace root
+│   ├── project.md
+│   ├── speclife.md     # AI context for slash commands
+│   ├── commands/       # Tracked slash commands
+│   │   └── speclife/
+│   │       ├── setup.md
+│   │       ├── start.md
+│   │       ├── ship.md
+│   │       ├── land.md
+│   │       └── release.md
+│   └── specs/
+└── package.json
 ```
 
 ## Development
 
 ```bash
-# Build all packages
-npm run build
-
-# Run tests (167 tests across adapters, workflows, and tools)
-npm test
-
-# Type check
-npm run typecheck
-
-# Start MCP server (for testing)
-npm run mcp:start
-
-# Development mode (watch + restart)
-npm run mcp:dev
+npm run build        # Build all packages
+npm test             # Run tests
+npm run typecheck    # TypeScript validation
 ```
-
-### Test Coverage
-
-- **Adapters**: GitAdapter, GitHubAdapter, OpenSpecAdapter, EnvironmentAdapter
-- **Workflows**: init, status, submit, merge
-- **Config**: loading, validation, defaults
-- **MCP Tools**: schema validation for all 7 tools
 
 ## License
 
 MIT
-

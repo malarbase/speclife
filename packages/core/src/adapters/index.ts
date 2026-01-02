@@ -1,10 +1,16 @@
 /**
  * Adapters for external services
+ * 
+ * DEPRECATION NOTES:
+ * - GitHub adapter: Use @github MCP or gh CLI instead
+ * - AI adapters: Removed - the agent IS the AI, use slash commands
  */
 
 export { createGitAdapter, type GitAdapter } from './git-adapter.js';
-export { createGitHubAdapter, type GitHubAdapter } from './github-adapter.js';
 export { createOpenSpecAdapter, type OpenSpecAdapter } from './openspec-adapter.js';
+
+// GitHub adapter (deprecated but kept for backward compatibility)
+export { createGitHubAdapter, type GitHubAdapter } from './github-adapter.js';
 
 // Environment adapters for worktree setup
 export {
@@ -24,29 +30,3 @@ export {
   detectMonorepo,
   patchTsconfigForMonorepo,
 } from './environment-adapter.js';
-
-// AI/Implementation adapters
-export {
-  createClaudeCliAdapter,
-  generateImplementationPrompt,
-  generateTaskGenerationPrompt,
-  parseTaskGenerationResponse,
-  type ClaudeCliAdapter,
-  type ClaudeCliOptions,
-  type ClaudeCliResult,
-} from './claude-cli-adapter.js';
-
-export {
-  createClaudeSdkAdapter,
-  generateAgenticSystemPrompt,
-  type ClaudeSdkAdapter,
-  type AgenticLoopOptions,
-  type AgenticLoopResult,
-} from './claude-sdk-adapter.js';
-
-export {
-  createCursorAdapter,
-  type CursorAdapter,
-  type CursorResult,
-} from './cursor-adapter.js';
-

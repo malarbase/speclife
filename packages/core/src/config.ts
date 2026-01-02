@@ -46,21 +46,46 @@ export interface ReleaseConfig {
   auto?: ReleaseAutoConfig | boolean;
 }
 
+/** Git configuration (new minimal config) */
+export interface GitConfig {
+  /** Base branch for new changes (default: "main") */
+  baseBranch?: string;
+  /** Branch prefix for change branches (default: "spec/") */
+  branchPrefix?: string;
+  /** Directory for worktrees (default: "worktrees") */
+  worktreeDir?: string;
+}
+
 /** SpecLife configuration schema */
 export interface SpecLifeConfig {
   /** OpenSpec directory location (default: "openspec") */
   specDir: string;
   
-  /** AI provider to use */
+  /** Git configuration (new minimal config) */
+  git?: GitConfig;
+  
+  /** 
+   * @deprecated Use slash commands instead of MCP tools.
+   * AI provider to use - only used by deprecated MCP server.
+   */
   aiProvider: 'claude' | 'openai' | 'gemini';
   
-  /** AI model identifier */
+  /** 
+   * @deprecated Use slash commands instead of MCP tools.
+   * AI model identifier - only used by deprecated MCP server.
+   */
   aiModel: string;
   
-  /** Implementation mode for speclife_implement (default: "claude-cli") */
+  /** 
+   * @deprecated Use /openspec-apply slash command instead.
+   * Implementation mode for speclife_implement MCP tool.
+   */
   implementMode: ImplementMode;
   
-  /** GitHub configuration */
+  /** 
+   * @deprecated Use @github MCP or gh CLI instead. Owner/repo auto-detected from git remote.
+   * GitHub configuration - only used by deprecated MCP server.
+   */
   github: {
     owner: string;
     repo: string;
@@ -139,6 +164,11 @@ export function isAutoReleaseAllowed(
 /** Default configuration values */
 const defaults: Partial<SpecLifeConfig> = {
   specDir: 'openspec',
+  git: {
+    baseBranch: 'main',
+    branchPrefix: 'spec/',
+    worktreeDir: 'worktrees',
+  },
   aiProvider: 'claude',
   aiModel: 'claude-sonnet-4-20250514',
   implementMode: 'claude-cli',
@@ -192,6 +222,10 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<SpecLifeC
   const config: SpecLifeConfig = {
     ...defaults,
     ...fileConfig,
+    git: {
+      ...defaults.git,
+      ...fileConfig.git,
+    },
     github: {
       ...defaults.github,
       ...fileConfig.github,

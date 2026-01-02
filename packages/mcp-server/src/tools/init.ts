@@ -8,7 +8,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { 
   loadConfig, 
   createGitAdapter,
-  createGitHubAdapter,
   createOpenSpecAdapter, 
   initWorkflow 
 } from "@speclife/core";
@@ -35,7 +34,7 @@ const InitArgsSchema = z.object({
 export function registerInitTool(server: McpServer): void {
   server.tool(
     "speclife_init",
-    "Initialize a new change: create worktree (default), scaffold proposal files (proposal.md, tasks.md), and create a draft PR for early visibility",
+    "[DEPRECATED: Use /speclife start slash command instead] Initialize a new change: create worktree (default), scaffold proposal files (proposal.md, tasks.md), and create a draft PR for early visibility",
     InitArgsSchema.shape,
     async (args) => {
       try {
@@ -50,15 +49,6 @@ export function registerInitTool(server: McpServer): void {
           specDir: config.specDir 
         });
         
-        // Create GitHub adapter if draft PR creation is enabled
-        const shouldCreateDraftPR = config.createDraftPR && !parsed.skipDraftPR;
-        const github = shouldCreateDraftPR 
-          ? createGitHubAdapter({
-              owner: config.github.owner,
-              repo: config.github.repo,
-            })
-          : undefined;
-        
         // Run workflow
         const result = await initWorkflow(
           {
@@ -68,7 +58,7 @@ export function registerInitTool(server: McpServer): void {
             skipDraftPR: parsed.skipDraftPR,
             generateTasks: parsed.generateTasks,
           },
-          { git, openspec, config, github }
+          { git, openspec, config }
         );
         
         const lines = result.worktreePath
@@ -84,21 +74,12 @@ export function registerInitTool(server: McpServer): void {
               `✓ Scaffolded tasks: ${result.tasksPath}`,
             ];
         
-        // Add task generation info
-        if (result.tasksGenerated) {
-          lines.push(`✓ Generated tasks with AI`);
-          if (result.tasksPreview) {
-            lines.push('');
-            lines.push('Generated tasks preview:');
-            lines.push('```');
-            lines.push(result.tasksPreview);
-            lines.push('```');
+        // Add bootstrap results if any
+        if (result.bootstrapResults && result.bootstrapResults.length > 0) {
+          const successful = result.bootstrapResults.filter(r => r.success);
+          if (successful.length > 0) {
+            lines.push(`✓ Bootstrapped environments: ${successful.map(r => r.environment).join(', ')}`);
           }
-        }
-        
-        // Add PR info if created
-        if (result.pullRequest) {
-          lines.push(`✓ Created draft PR #${result.pullRequest.number}: ${result.pullRequest.url}`);
         }
         
         lines.push("");
@@ -108,17 +89,15 @@ export function registerInitTool(server: McpServer): void {
           lines.push(`1. cd ${result.worktreePath}`);
           lines.push("2. Edit proposal.md to describe your change");
           lines.push("3. Edit tasks.md to list implementation steps");
-          lines.push("4. Run speclife_implement to start AI-driven implementation");
+          lines.push("4. Use /openspec-apply to implement tasks");
         } else {
           lines.push("1. Edit proposal.md to describe your change");
           lines.push("2. Edit tasks.md to list implementation steps");
-          lines.push("3. Run speclife_implement to start AI-driven implementation");
+          lines.push("3. Use /openspec-apply to implement tasks");
         }
         
-        if (result.pullRequest) {
-          lines.push("");
-          lines.push(`Note: Draft PR is live at ${result.pullRequest.url} - team can see progress early!`);
-        }
+        lines.push("");
+        lines.push("Note: Use /speclife start slash command for a better experience.");
         
         return {
           content: [{ type: "text", text: lines.join("\n") }],

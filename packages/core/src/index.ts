@@ -12,6 +12,7 @@ export {
   loadConfig,
   isAutoReleaseAllowed,
   type SpecLifeConfig,
+  type GitConfig,
   type WorktreeConfig,
   type EnvironmentBootstrapConfig,
   type ReleaseConfig,

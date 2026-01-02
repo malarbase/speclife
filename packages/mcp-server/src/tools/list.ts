@@ -80,7 +80,7 @@ async function getPRStatus(
 export function registerListTool(server: McpServer): void {
   server.tool(
     "speclife_list",
-    "List all active changes with progress bars, PR status, and last activity timestamps",
+    "[DEPRECATED: Use speclife worktree list CLI command instead] List all active changes with progress bars, PR status, and last activity timestamps",
     ListArgsSchema.shape,
     async (args) => {
       try {
@@ -104,10 +104,7 @@ export function registerListTool(server: McpServer): void {
         // Create GitHub adapter for PR lookups
         let github: ReturnType<typeof createGitHubAdapter> | null = null;
         try {
-          github = createGitHubAdapter({
-            owner: config.github.owner,
-            repo: config.github.repo,
-          });
+          github = createGitHubAdapter(config.github.owner, config.github.repo);
         } catch {
           // GitHub not configured, will show all as "local"
         }

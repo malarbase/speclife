@@ -42,7 +42,7 @@ const ReleaseArgsSchema = z.object({
 export function registerReleaseTool(server: McpServer): void {
   server.tool(
     "speclife_release",
-    "Create a release PR with version bump and changelog. Analyzes commits since last release to suggest appropriate version. Use --major for intentional breaking releases, --minor/--patch to override suggestions.",
+    "[DEPRECATED: Use /speclife release slash command instead] Create a release PR with version bump and changelog. Analyzes commits since last release to suggest appropriate version. Use --major for intentional breaking releases, --minor/--patch to override suggestions.",
     ReleaseArgsSchema.shape,
     async (args) => {
       try {
@@ -52,10 +52,7 @@ export function registerReleaseTool(server: McpServer): void {
         // Load config and create adapters
         const config = await loadConfig(cwd);
         const git = createGitAdapter(cwd);
-        const github = createGitHubAdapter({
-          owner: config.github.owner,
-          repo: config.github.repo,
-        });
+        const github = createGitHubAdapter(config.github.owner, config.github.repo);
         
         // Determine version from flags
         let version = parsed.version;

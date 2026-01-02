@@ -35,7 +35,7 @@ const SubmitArgsSchema = z.object({
 export function registerSubmitTool(server: McpServer): void {
   server.tool(
     "speclife_submit",
-    "Submit a change: validate spec, commit all changes, push to remote, create GitHub PR, and archive the change",
+    "[DEPRECATED: Use /speclife ship slash command instead] Submit a change: validate spec, commit all changes, push to remote, create GitHub PR, and archive the change",
     SubmitArgsSchema.shape,
     async (args) => {
       try {
@@ -45,10 +45,7 @@ export function registerSubmitTool(server: McpServer): void {
         // Load config and create adapters
         const config = await loadConfig(cwd);
         const git = createGitAdapter(cwd);
-        const github = createGitHubAdapter({
-          owner: config.github.owner,
-          repo: config.github.repo,
-        });
+        const github = createGitHubAdapter(config.github.owner, config.github.repo);
         const openspec = createOpenSpecAdapter({ 
           projectRoot: cwd, 
           specDir: config.specDir 
