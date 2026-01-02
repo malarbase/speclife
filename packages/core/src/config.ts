@@ -25,27 +25,6 @@ export interface WorktreeConfig {
   };
 }
 
-/** Auto-release configuration by version bump type */
-export interface ReleaseAutoConfig {
-  /** Auto-release for patch bumps (default: true) */
-  patch?: boolean;
-  /** Auto-release for minor bumps (default: true) */
-  minor?: boolean;
-  /** Auto-release for major bumps (default: false - requires manual) */
-  major?: boolean;
-}
-
-/** Release configuration */
-export interface ReleaseConfig {
-  /** 
-   * Auto-release configuration.
-   * - If boolean: enables/disables auto-release for all types (except major)
-   * - If object: fine-grained control per bump type
-   * Default: { patch: true, minor: true, major: false }
-   */
-  auto?: ReleaseAutoConfig | boolean;
-}
-
 /** SpecLife configuration schema */
 export interface SpecLifeConfig {
   /** OpenSpec directory location (default: "openspec") */
@@ -81,59 +60,6 @@ export interface SpecLifeConfig {
   
   /** Create draft PR during init (default: true) */
   createDraftPR: boolean;
-  
-  /** Release configuration */
-  release: ReleaseConfig;
-}
-
-/**
- * Merge auto-release configuration
- * Handles both boolean and object forms
- */
-function mergeAutoReleaseConfig(
-  defaultConfig?: ReleaseAutoConfig | boolean,
-  userConfig?: ReleaseAutoConfig | boolean
-): ReleaseAutoConfig {
-  // If user provided boolean, expand it
-  if (typeof userConfig === 'boolean') {
-    return {
-      patch: userConfig,
-      minor: userConfig,
-      major: false, // Major always defaults to false for safety
-    };
-  }
-  
-  // If user provided object, merge with defaults
-  const defaultObj = typeof defaultConfig === 'boolean'
-    ? { patch: defaultConfig, minor: defaultConfig, major: false }
-    : defaultConfig ?? {};
-    
-  return {
-    patch: userConfig?.patch ?? defaultObj.patch ?? true,
-    minor: userConfig?.minor ?? defaultObj.minor ?? true,
-    major: userConfig?.major ?? defaultObj.major ?? false,
-  };
-}
-
-/**
- * Check if auto-release is allowed for a given bump type
- */
-export function isAutoReleaseAllowed(
-  config: SpecLifeConfig,
-  bumpType: 'major' | 'minor' | 'patch'
-): boolean {
-  const autoConfig = config.release?.auto;
-  
-  if (autoConfig === undefined) {
-    // Default: auto for patch/minor, manual for major
-    return bumpType !== 'major';
-  }
-  
-  if (typeof autoConfig === 'boolean') {
-    return bumpType === 'major' ? false : autoConfig;
-  }
-  
-  return autoConfig[bumpType] ?? (bumpType !== 'major');
 }
 
 /** Default configuration values */
@@ -154,13 +80,6 @@ const defaults: Partial<SpecLifeConfig> = {
     },
   },
   createDraftPR: true,
-  release: {
-    auto: {
-      patch: true,
-      minor: true,
-      major: false,
-    },
-  },
 };
 
 /**
@@ -203,14 +122,6 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<SpecLifeC
         ...defaults.worktree?.bootstrap,
         ...fileConfig.worktree?.bootstrap,
       },
-    },
-    release: {
-      ...defaults.release,
-      ...fileConfig.release,
-      auto: mergeAutoReleaseConfig(
-        defaults.release?.auto,
-        fileConfig.release?.auto
-      ),
     },
   } as SpecLifeConfig;
   
@@ -290,4 +201,3 @@ function validateConfig(config: SpecLifeConfig): void {
     }
   }
 }
-
