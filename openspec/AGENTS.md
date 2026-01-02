@@ -12,54 +12,63 @@ Instructions for AI coding assistants building the SpecLife project.
 
 ## Project Overview
 
-SpecLife is an MCP server that automates spec-driven development. It enables developers to use AI assistants (Claude, Cursor) as the primary interface for creating, implementing, and shipping code changes based on OpenSpec proposals.
+SpecLife is a git/GitHub automation tool that complements OpenSpec for spec-driven development. It provides:
 
-**Key Insight:** The MCP server IS the product. The CLI is secondary (for CI/scripting).
+1. **CLI commands** for worktree and git operations
+2. **Slash commands** for AI-guided workflows
+3. **MCP server** (deprecated) for backward compatibility
+
+**Key Insight:** SpecLife focuses on git/GitHub automation. Spec management is handled by OpenSpec.
+
+| Tool | Responsibility |
+|------|----------------|
+| **OpenSpec** | Specs (proposals, validation, implementation guidance, archiving) |
+| **SpecLife** | Git/GitHub (worktrees, branches, PRs, merging, releases) |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `openspec/project.md` | Project context, conventions, tech stack |
-| `openspec/specs/mcp-server/spec.md` | MCP tool requirements |
-| `openspec/specs/core/spec.md` | Core library requirements |
+| `openspec/speclife.md` | AI context for slash commands |
+| `openspec/commands/speclife/*.md` | Slash command definitions |
 | `packages/core/src/` | Shared business logic |
-| `packages/mcp-server/src/` | MCP server implementation |
+| `packages/cli/src/` | CLI implementation |
+| `packages/mcp-server/src/` | MCP server (deprecated) |
 
-## Implementation Priority
+## Architecture
 
-### Phase 1: Foundation (MVP)
-1. **Core adapters:** GitAdapter, GitHubAdapter, ConfigLoader, OpenSpecAdapter
-2. **Init workflow:** Create branch (or worktree), scaffold proposal files
-3. **Status workflow:** Read change state from filesystem
-4. **MCP tools:** `speclife_init`, `speclife_status`, `speclife_list`
+### Slash Commands (Primary Interface)
 
-### Phase 2: Submit & Merge Flow
-1. **Submit workflow:** Stage, commit, push, create PR, archive change
-2. **MCP tool:** `speclife_submit`
-3. **Merge workflow:** Merge PR, switch to main, cleanup worktree
-4. **MCP tool:** `speclife_merge`
+Slash commands are markdown files that guide AI assistants through workflows:
 
-### Phase 3: AI Implementation (with Test Loop)
-1. **AI adapter:** Claude API with tool-use
-2. **Implement workflow:** Read specs, generate code, run tests, fix failures
-3. **Internal test loop:** implement → test → fix → repeat until passing
-4. **MCP tool:** `speclife_implement`
+```
+openspec/commands/speclife/
+├── setup.md     # AI-guided config discovery
+├── start.md     # Create worktree + branch
+├── ship.md      # Archive, commit, push, create PR
+├── land.md      # Merge, cleanup, auto-release
+└── release.md   # Manual release (major versions)
+```
 
-### Phase 4: Worktree Support
-1. **Worktree management:** Create, list, cleanup worktrees
-2. **Parallel lifecycles:** Multiple changes running simultaneously
-3. **Cross-worktree status:** See all active changes
+These are symlinked to editor-specific directories:
+- `.cursor/commands/speclife/` → `openspec/commands/speclife/`
+- `.claude/commands/speclife/` → `openspec/commands/speclife/`
 
-### Phase 5: Polish
-1. **CLI wrapper:** Thin CLI for CI/scripts
-2. **Progress persistence:** Resume failed operations
-3. **Error recovery:** Rollback, stash, retry logic
+### CLI Commands
 
-## Architecture Guidance
+```bash
+speclife init                        # Project setup
+speclife worktree create <change-id> # Create worktree + branch
+speclife worktree rm <change-id>     # Remove worktree + branch
+speclife worktree list               # List worktrees
+speclife status [change-id]          # Show status
+speclife version                     # Show version
+```
 
 ### Adapter Pattern
-All external services are wrapped in adapters:
+
+External services are wrapped in adapters:
 
 ```typescript
 // packages/core/src/adapters/git-adapter.ts
@@ -67,23 +76,14 @@ export interface GitAdapter {
   createBranch(name: string, from?: string): Promise<void>;
   checkout(branch: string): Promise<void>;
   add(paths: string[]): Promise<void>;
-  commit(message: string): Promise<string>; // returns commit SHA
+  commit(message: string): Promise<string>;
   push(remote: string, branch: string): Promise<void>;
-  getCurrentBranch(): Promise<string>;
-  status(): Promise<GitStatus>;
-}
-
-// Implementation uses simple-git
-export function createGitAdapter(repoPath: string): GitAdapter {
-  const git = simpleGit(repoPath);
-  return {
-    async createBranch(name, from) { /* ... */ },
-    // ...
-  };
+  // ...
 }
 ```
 
 ### Workflow Pattern
+
 Each operation is a workflow function:
 
 ```typescript
@@ -91,98 +91,42 @@ Each operation is a workflow function:
 export interface InitOptions {
   changeId: string;
   description?: string;
-  skipBranch?: boolean;
-  dryRun?: boolean;
+  noWorktree?: boolean;
 }
 
 export interface InitResult {
   branch: string;
+  worktreePath?: string;
   proposalPath: string;
   tasksPath: string;
 }
 
 export async function initWorkflow(
   options: InitOptions,
-  adapters: { git: GitAdapter; config: SpecLifeConfig }
+  adapters: { git: GitAdapter; openspec: OpenSpecAdapter; config: SpecLifeConfig }
 ): Promise<InitResult> {
-  // 1. Validate changeId
-  // 2. Create branch (unless skipBranch)
-  // 3. Scaffold proposal files
-  // 4. Return result
-}
-```
-
-### MCP Tool Definition
-Tools expose workflows to AI assistants:
-
-```typescript
-// packages/mcp-server/src/tools/init.ts
-export const initTool: Tool = {
-  name: "speclife_init",
-  description: "Initialize a new change: create branch and scaffold proposal files",
-  inputSchema: {
-    type: "object",
-    properties: {
-      changeId: {
-        type: "string",
-        description: "Unique identifier for the change (kebab-case, e.g., add-user-auth)"
-      },
-      description: {
-        type: "string",
-        description: "Brief description of the change (populates proposal.md)"
-      }
-    },
-    required: ["changeId"]
-  }
-};
-
-export async function handleInit(args: { changeId: string; description?: string }) {
-  const config = await loadConfig();
-  const git = createGitAdapter(process.cwd());
-  
-  const result = await initWorkflow(
-    { changeId: args.changeId, description: args.description },
-    { git, config }
-  );
-  
-  return {
-    content: [{
-      type: "text",
-      text: `✓ Created branch ${result.branch}\n` +
-            `✓ Scaffolded proposal at ${result.proposalPath}`
-    }]
-  };
+  // ...
 }
 ```
 
 ## Testing Approach
 
 ### Unit Tests (Adapters)
-Mock external services:
 
 ```typescript
-// packages/core/test/adapters/git-adapter.test.ts
-import { describe, it, expect, vi } from 'vitest';
-
 describe('GitAdapter', () => {
   it('creates branch from base', async () => {
-    const mockGit = {
-      checkoutLocalBranch: vi.fn(),
-    };
+    const mockGit = { checkoutLocalBranch: vi.fn() };
     // ...
   });
 });
 ```
 
 ### Integration Tests (Workflows)
+
 Use real git in temp directories:
 
 ```typescript
-// packages/core/test/workflows/init.test.ts
-import { describe, it, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm } from 'fs/promises';
-import { tmpdir } from 'os';
-
 describe('initWorkflow', () => {
   let tempDir: string;
   
@@ -191,25 +135,7 @@ describe('initWorkflow', () => {
     await execaCommand('git init', { cwd: tempDir });
   });
   
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true });
-  });
-  
-  it('creates branch and scaffolds files', async () => {
-    // ...
-  });
-});
-```
-
-### MCP Tool Tests
-Verify schema and basic invocation:
-
-```typescript
-// packages/mcp-server/test/tools.test.ts
-describe('speclife_init tool', () => {
-  it('has valid schema', () => {
-    expect(initTool.inputSchema.required).toContain('changeId');
-  });
+  // ...
 });
 ```
 
@@ -256,13 +182,10 @@ function init(changeId: string, desc: string, skip: boolean, dry: boolean)
 npm run build        # Build all packages
 npm run test         # Run all tests
 npm run typecheck    # TypeScript validation
-npm run mcp:start    # Start MCP server
 ```
 
 ### Environment Variables
 ```bash
-GITHUB_TOKEN         # GitHub API access
-ANTHROPIC_API_KEY    # Claude API access
+GITHUB_TOKEN         # GitHub API access (for deprecated MCP server)
 SPECLIFE_DEBUG=1     # Enable debug logging
 ```
-

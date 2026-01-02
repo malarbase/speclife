@@ -34,7 +34,7 @@ const InitArgsSchema = z.object({
 export function registerInitTool(server: McpServer): void {
   server.tool(
     "speclife_init",
-    "Initialize a new change: create worktree (default), scaffold proposal files (proposal.md, tasks.md), and create a draft PR for early visibility",
+    "[DEPRECATED: Use /speclife start slash command instead] Initialize a new change: create worktree (default), scaffold proposal files (proposal.md, tasks.md), and create a draft PR for early visibility",
     InitArgsSchema.shape,
     async (args) => {
       try {

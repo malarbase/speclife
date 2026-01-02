@@ -64,16 +64,28 @@ export interface SpecLifeConfig {
   /** Git configuration (new minimal config) */
   git?: GitConfig;
   
-  /** AI provider to use (deprecated - use slash commands) */
+  /** 
+   * @deprecated Use slash commands instead of MCP tools.
+   * AI provider to use - only used by deprecated MCP server.
+   */
   aiProvider: 'claude' | 'openai' | 'gemini';
   
-  /** AI model identifier (deprecated - use slash commands) */
+  /** 
+   * @deprecated Use slash commands instead of MCP tools.
+   * AI model identifier - only used by deprecated MCP server.
+   */
   aiModel: string;
   
-  /** Implementation mode for speclife_implement (deprecated - use /openspec-apply) */
+  /** 
+   * @deprecated Use /openspec-apply slash command instead.
+   * Implementation mode for speclife_implement MCP tool.
+   */
   implementMode: ImplementMode;
   
-  /** GitHub configuration (deprecated - owner/repo auto-detected) */
+  /** 
+   * @deprecated Use @github MCP or gh CLI instead. Owner/repo auto-detected from git remote.
+   * GitHub configuration - only used by deprecated MCP server.
+   */
   github: {
     owner: string;
     repo: string;

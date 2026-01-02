@@ -2,8 +2,20 @@
 /**
  * SpecLife MCP Server
  * 
- * Exposes spec-driven development workflows as MCP tools
- * for AI assistants (Claude Desktop, Cursor).
+ * ⚠️ DEPRECATED: This MCP server is deprecated in favor of slash commands.
+ * 
+ * Use /speclife slash commands instead:
+ *   - /speclife start  → replaces speclife_init
+ *   - /speclife ship   → replaces speclife_submit
+ *   - /speclife land   → replaces speclife_merge
+ *   - /speclife release → replaces speclife_release
+ *   - /openspec-apply  → replaces speclife_implement
+ * 
+ * The MCP server remains available for:
+ *   - CI/automation scenarios
+ *   - Editors without slash command support
+ * 
+ * See README.md for migration guide.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

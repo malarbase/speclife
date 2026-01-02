@@ -80,7 +80,7 @@ async function getPRStatus(
 export function registerListTool(server: McpServer): void {
   server.tool(
     "speclife_list",
-    "List all active changes with progress bars, PR status, and last activity timestamps",
+    "[DEPRECATED: Use speclife worktree list CLI command instead] List all active changes with progress bars, PR status, and last activity timestamps",
     ListArgsSchema.shape,
     async (args) => {
       try {

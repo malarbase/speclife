@@ -42,7 +42,7 @@ const ReleaseArgsSchema = z.object({
 export function registerReleaseTool(server: McpServer): void {
   server.tool(
     "speclife_release",
-    "Create a release PR with version bump and changelog. Analyzes commits since last release to suggest appropriate version. Use --major for intentional breaking releases, --minor/--patch to override suggestions.",
+    "[DEPRECATED: Use /speclife release slash command instead] Create a release PR with version bump and changelog. Analyzes commits since last release to suggest appropriate version. Use --major for intentional breaking releases, --minor/--patch to override suggestions.",
     ReleaseArgsSchema.shape,
     async (args) => {
       try {

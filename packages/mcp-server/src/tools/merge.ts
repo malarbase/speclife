@@ -40,7 +40,7 @@ const MergeArgsSchema = z.object({
 export function registerMergeTool(server: McpServer): void {
   server.tool(
     "speclife_merge",
-    "Merge a submitted PR, sync main branch, and cleanup local branch/worktree. Auto-creates release PR for patch/minor bumps (configurable).",
+    "[DEPRECATED: Use /speclife land slash command instead] Merge a submitted PR, sync main branch, and cleanup local branch/worktree. Auto-creates release PR for patch/minor bumps (configurable).",
     MergeArgsSchema.shape,
     async (args) => {
       try {

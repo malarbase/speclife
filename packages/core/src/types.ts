@@ -104,10 +104,16 @@ export const ErrorCodes = {
   TEST_FAILED: 'TEST_FAILED',
 } as const;
 
-/** Implementation modes for speclife_implement */
+/** 
+ * @deprecated Use /openspec-apply slash command instead of speclife_implement MCP tool.
+ * Implementation modes for speclife_implement 
+ */
 export type ImplementMode = 'claude-cli' | 'claude-sdk' | 'cursor';
 
-/** Options for the implement workflow */
+/** 
+ * @deprecated Use /openspec-apply slash command instead of speclife_implement MCP tool.
+ * Options for the implement workflow 
+ */
 export interface ImplementOptions {
   /** Change ID to implement */
   changeId: string;
@@ -119,7 +125,10 @@ export interface ImplementOptions {
   dryRun?: boolean;
 }
 
-/** Result of the implement workflow */
+/** 
+ * @deprecated Use /openspec-apply slash command instead of speclife_implement MCP tool.
+ * Result of the implement workflow 
+ */
 export interface ImplementResult {
   /** Mode used for implementation */
   mode: ImplementMode;

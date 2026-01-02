@@ -35,7 +35,7 @@ const ImplementArgsSchema = z.object({
 export function registerImplementTool(server: McpServer): void {
   server.tool(
     "speclife_implement",
-    "Implement a change using AI. Supports multiple modes: 'claude-cli' (primary - uses Claude CLI with MCP servers), 'claude-sdk' (fully automated with tool-use), or 'cursor' (opens IDE for manual implementation).",
+    "[DEPRECATED: Use /openspec-apply slash command instead] Implement a change using AI. Supports multiple modes: 'claude-cli' (primary - uses Claude CLI with MCP servers), 'claude-sdk' (fully automated with tool-use), or 'cursor' (opens IDE for manual implementation).",
     ImplementArgsSchema.shape,
     async (args) => {
       try {

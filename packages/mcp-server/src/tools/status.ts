@@ -22,7 +22,7 @@ const StatusArgsSchema = z.object({
 export function registerStatusTool(server: McpServer): void {
   server.tool(
     "speclife_status",
-    "Show the current state and progress of a change",
+    "[DEPRECATED: Use speclife status CLI command instead] Show the current state and progress of a change",
     StatusArgsSchema.shape,
     async (args) => {
       try {

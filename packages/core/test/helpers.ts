@@ -178,9 +178,15 @@ export function createMockGitHubAdapter(overrides: Partial<MockGitHubAdapter> = 
       mergeable: true,
     }),
     getPullRequestByBranch: vi.fn().mockResolvedValue(null),
-    getPullRequestDiff: vi.fn().mockResolvedValue(''),
     isPullRequestMergeable: vi.fn().mockResolvedValue({ mergeable: true }),
     mergePullRequest: vi.fn().mockResolvedValue(undefined),
+    updatePullRequest: vi.fn().mockResolvedValue({
+      number: 1,
+      url: 'https://github.com/test/repo/pull/1',
+      state: 'open',
+      draft: false,
+      mergeable: true,
+    }),
     markPullRequestReady: vi.fn().mockResolvedValue({
       number: 1,
       url: 'https://github.com/test/repo/pull/1',
@@ -197,9 +203,9 @@ export interface MockGitHubAdapter {
   createPullRequest: ReturnType<typeof vi.fn>;
   getPullRequest: ReturnType<typeof vi.fn>;
   getPullRequestByBranch: ReturnType<typeof vi.fn>;
-  getPullRequestDiff: ReturnType<typeof vi.fn>;
   isPullRequestMergeable: ReturnType<typeof vi.fn>;
   mergePullRequest: ReturnType<typeof vi.fn>;
+  updatePullRequest: ReturnType<typeof vi.fn>;
   markPullRequestReady: ReturnType<typeof vi.fn>;
   enableAutoMerge: ReturnType<typeof vi.fn>;
 }

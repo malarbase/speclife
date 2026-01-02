@@ -35,7 +35,7 @@ const SubmitArgsSchema = z.object({
 export function registerSubmitTool(server: McpServer): void {
   server.tool(
     "speclife_submit",
-    "Submit a change: validate spec, commit all changes, push to remote, create GitHub PR, and archive the change",
+    "[DEPRECATED: Use /speclife ship slash command instead] Submit a change: validate spec, commit all changes, push to remote, create GitHub PR, and archive the change",
     SubmitArgsSchema.shape,
     async (args) => {
       try {
