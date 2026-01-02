@@ -1,26 +1,9 @@
-# SpecLife configuration for bootstrapping itself
+# SpecLife Configuration
+# Minimal settings - most values are auto-detected
+
 specDir: openspec
-aiProvider: claude
-aiModel: claude-sonnet-4-20250514
 
-github:
-  owner: malarbase
-  repo: speclife
+git:
   baseBranch: main
-
-testCommand: npm test
-buildCommand: npm run build
-
-# Auto-release configuration
-release:
-  auto:
-    patch: true   # Auto-create release PR for patch bumps
-    minor: true   # Auto-create release PR for minor bumps
-    major: false  # Require manual speclife_release for major
-
-# Files always included in AI context
-contextFiles:
-  - openspec/project.md
-  - openspec/AGENTS.md
-  - README.md
-
+  branchPrefix: spec/
+  worktreeDir: worktrees
