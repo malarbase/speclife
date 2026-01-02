@@ -1,5 +1,5 @@
 ---
-name: /speclife/convert
+name: /speclife-convert
 id: speclife-convert
 category: SpecLife
 description: Switch between branch-only and worktree modes for current change.

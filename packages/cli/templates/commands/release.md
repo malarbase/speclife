@@ -1,3 +1,9 @@
+---
+name: /speclife-release
+id: speclife-release
+category: SpecLife
+description: Create a release with version bump for manual releases (major versions).
+---
 # /speclife release
 
 Create a release with version bump. Used for manual releases (typically major versions).

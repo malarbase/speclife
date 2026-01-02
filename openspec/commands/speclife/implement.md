@@ -1,3 +1,9 @@
+---
+name: /speclife-implement
+id: speclife-implement
+category: SpecLife
+description: Convenience proxy to /openspec-apply for implementing changes.
+---
 # /speclife implement
 
 Convenience proxy to `/openspec-apply`.

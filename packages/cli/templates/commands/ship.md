@@ -1,5 +1,5 @@
 ---
-name: /speclife/ship
+name: /speclife-ship
 id: speclife-ship
 category: SpecLife
 description: Commit changes, push to remote, and create a PR for review.
