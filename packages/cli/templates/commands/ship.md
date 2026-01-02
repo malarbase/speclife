@@ -50,9 +50,7 @@ Note: Spec mode is determined by branch name prefix (`spec/`), not worktree exis
 ### 1. Spec Branch Only
 If spec branch detected:
 - Run `openspec validate <change-id>`
-- **⚡ Required:** Invoke `/openspec-archive <change-id>` command
-  - Do NOT manually `mv` files—the command updates project.md and specs
-  - Wait for archive confirmation before proceeding
+- Run `openspec archive <change-id>`
 - Read proposal.md for commit message
 
 ### 2. Ad-hoc Branch Only
