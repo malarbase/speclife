@@ -172,6 +172,96 @@ function buildArgs(options: ClaudeCliOptions): string[] {
 }
 
 /**
+ * Generate a task generation prompt for Claude CLI
+ */
+export function generateTaskGenerationPrompt(context: {
+  changeId: string;
+  description: string;
+  projectStructure?: string;
+  existingPatterns?: string[];
+}): string {
+  const sections: string[] = [];
+  
+  sections.push(`# Task Generation Request: ${context.changeId}`);
+  sections.push('');
+  sections.push('Generate implementation tasks for the following change proposal.');
+  sections.push('Tasks should be specific, actionable, and follow best practices.');
+  sections.push('');
+  
+  sections.push('## Change Description');
+  sections.push(context.description);
+  sections.push('');
+  
+  if (context.projectStructure) {
+    sections.push('## Project Structure');
+    sections.push('```');
+    sections.push(context.projectStructure);
+    sections.push('```');
+    sections.push('');
+  }
+  
+  if (context.existingPatterns && context.existingPatterns.length > 0) {
+    sections.push('## Existing Patterns');
+    sections.push('Follow these existing patterns in the codebase:');
+    for (const pattern of context.existingPatterns) {
+      sections.push(`- ${pattern}`);
+    }
+    sections.push('');
+  }
+  
+  sections.push('## Output Format');
+  sections.push('Generate tasks in this exact markdown format:');
+  sections.push('```');
+  sections.push('## 1. Section Name');
+  sections.push('- [ ] 1.1 First task description');
+  sections.push('- [ ] 1.2 Second task description');
+  sections.push('');
+  sections.push('## 2. Another Section');
+  sections.push('- [ ] 2.1 Task description');
+  sections.push('```');
+  sections.push('');
+  sections.push('## Requirements');
+  sections.push('- Include 3-6 top-level sections');
+  sections.push('- Each section should have 2-5 tasks');
+  sections.push('- Tasks should be specific and actionable');
+  sections.push('- Include tasks for tests');
+  sections.push('- Include a final "Verification" section');
+  sections.push('- Output ONLY the markdown task list, no explanations');
+  sections.push('');
+  sections.push('Generate the tasks now:');
+  
+  return sections.join('\n');
+}
+
+/**
+ * Parse task generation response from Claude
+ */
+export function parseTaskGenerationResponse(response: string): string {
+  // Extract markdown content (remove any surrounding explanation)
+  const lines = response.split('\n');
+  const taskLines: string[] = [];
+  let inTasks = false;
+  
+  for (const line of lines) {
+    // Start capturing when we see a section header
+    if (line.match(/^## \d+\./)) {
+      inTasks = true;
+    }
+    
+    if (inTasks) {
+      taskLines.push(line);
+    }
+  }
+  
+  // If no structured tasks found, return the whole response
+  if (taskLines.length === 0) {
+    return response.trim();
+  }
+  
+  return taskLines.join('\n').trim();
+}
+
+/**
  * Generate an implementation prompt for Claude CLI
  */
 export function generateImplementationPrompt(context: {

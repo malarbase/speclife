@@ -27,6 +27,9 @@ const InitArgsSchema = z.object({
   skipDraftPR: z.boolean().optional().describe(
     "Skip creating a draft PR (overrides config.createDraftPR)"
   ),
+  generateTasks: z.boolean().optional().describe(
+    "Use AI to generate implementation tasks based on the description (requires Claude CLI)"
+  ),
 });
 
 export function registerInitTool(server: McpServer): void {
@@ -63,6 +66,7 @@ export function registerInitTool(server: McpServer): void {
             description: parsed.description,
             noWorktree: parsed.noWorktree,
             skipDraftPR: parsed.skipDraftPR,
+            generateTasks: parsed.generateTasks,
           },
           { git, openspec, config, github }
         );
@@ -79,6 +83,18 @@ export function registerInitTool(server: McpServer): void {
               `✓ Scaffolded proposal: ${result.proposalPath}`,
               `✓ Scaffolded tasks: ${result.tasksPath}`,
             ];
+        
+        // Add task generation info
+        if (result.tasksGenerated) {
+          lines.push(`✓ Generated tasks with AI`);
+          if (result.tasksPreview) {
+            lines.push('');
+            lines.push('Generated tasks preview:');
+            lines.push('```');
+            lines.push(result.tasksPreview);
+            lines.push('```');
+          }
+        }
         
         // Add PR info if created
         if (result.pullRequest) {
