@@ -10,6 +10,11 @@ import {
   type BootstrapResult,
   createDefaultEnvironmentRegistry,
 } from '../adapters/environment-adapter.js';
+import {
+  createClaudeCliAdapter,
+  generateTaskGenerationPrompt,
+  parseTaskGenerationResponse,
+} from '../adapters/claude-cli-adapter.js';
 import { type SpecLifeConfig } from '../config.js';
 import { SpecLifeError, ErrorCodes, type PullRequest, type ProgressCallback } from '../types.js';
 
@@ -26,6 +31,8 @@ export interface InitOptions {
   dryRun?: boolean;
   /** Skip draft PR creation (overrides config.createDraftPR) */
   skipDraftPR?: boolean;
+  /** Generate tasks using AI based on description */
+  generateTasks?: boolean;
 }
 
 export interface InitResult {
@@ -41,6 +48,10 @@ export interface InitResult {
   bootstrapResults?: BootstrapResult[];
   /** Draft PR created (if createDraftPR is enabled) */
   pullRequest?: PullRequest;
+  /** Whether tasks were AI-generated */
+  tasksGenerated?: boolean;
+  /** Preview of generated tasks (first few lines) */
+  tasksPreview?: string;
 }
 
 interface InitDependencies {
@@ -64,7 +75,7 @@ export async function initWorkflow(
   deps: InitDependencies,
   onProgress?: ProgressCallback
 ): Promise<InitResult> {
-  const { changeId, description, noWorktree = false, skipBootstrap = false, dryRun = false, skipDraftPR = false } = options;
+  const { changeId, description, noWorktree = false, skipBootstrap = false, dryRun = false, skipDraftPR = false, generateTasks = false } = options;
   const { git, openspec, config, environmentRegistry, github } = deps;
   
   // Determine if we should create a draft PR
@@ -123,6 +134,21 @@ export async function initWorkflow(
     onProgress?.({ type: 'step_completed', message: 'Scaffolding proposal files' });
     const { proposalPath, tasksPath } = await openspec.scaffoldChange(changeId, { description });
     
+    // Generate tasks using AI if requested
+    let tasksGenerated = false;
+    let tasksPreview: string | undefined;
+    if (generateTasks && description) {
+      const result = await generateTasksWithAI({
+        changeId,
+        description,
+        tasksPath,
+        cwd: process.cwd(),
+        onProgress,
+      });
+      tasksGenerated = result.success;
+      tasksPreview = result.preview;
+    }
+    
     // Create draft PR if enabled
     let pullRequest: PullRequest | undefined;
     if (shouldCreateDraftPR && github) {
@@ -144,6 +170,8 @@ export async function initWorkflow(
       proposalPath,
       tasksPath,
       pullRequest,
+      tasksGenerated,
+      tasksPreview,
     };
   }
   
@@ -200,6 +228,21 @@ export async function initWorkflow(
   onProgress?.({ type: 'step_completed', message: 'Scaffolding proposal files in worktree' });
   const { proposalPath, tasksPath } = await worktreeOpenspec.scaffoldChange(changeId, { description });
   
+  // Generate tasks using AI if requested
+  let tasksGenerated = false;
+  let tasksPreview: string | undefined;
+  if (generateTasks && description) {
+    const result = await generateTasksWithAI({
+      changeId,
+      description,
+      tasksPath,
+      cwd: worktreePath,
+      onProgress,
+    });
+    tasksGenerated = result.success;
+    tasksPreview = result.preview;
+  }
+  
   // Create draft PR if enabled
   // For worktree mode, we need a git adapter for the worktree
   let pullRequest: PullRequest | undefined;
@@ -228,7 +271,74 @@ export async function initWorkflow(
     tasksPath,
     bootstrapResults,
     pullRequest,
+    tasksGenerated,
+    tasksPreview,
   };
+}
+
+/**
+ * Helper to generate tasks using AI
+ */
+async function generateTasksWithAI(params: {
+  changeId: string;
+  description: string;
+  tasksPath: string;
+  cwd: string;
+  onProgress?: ProgressCallback;
+}): Promise<{ success: boolean; preview?: string }> {
+  const { changeId, description, tasksPath, cwd, onProgress } = params;
+  
+  try {
+    onProgress?.({ type: 'step_completed', message: 'Generating tasks with AI...' });
+    
+    const claudeCli = createClaudeCliAdapter();
+    
+    // Check if Claude CLI is available
+    if (!await claudeCli.isAvailable()) {
+      onProgress?.({ type: 'step_completed', message: 'Claude CLI not available, skipping task generation' });
+      return { success: false };
+    }
+    
+    // Generate prompt
+    const prompt = generateTaskGenerationPrompt({
+      changeId,
+      description,
+    });
+    
+    // Run Claude CLI
+    const result = await claudeCli.run(prompt, {
+      cwd,
+      maxTokens: 2000,
+    });
+    
+    if (!result.success) {
+      onProgress?.({ type: 'step_completed', message: 'Task generation failed, using empty template' });
+      return { success: false };
+    }
+    
+    // Parse the response
+    const tasks = parseTaskGenerationResponse(result.stdout);
+    
+    if (!tasks || tasks.length < 10) {
+      onProgress?.({ type: 'step_completed', message: 'Generated tasks too short, using empty template' });
+      return { success: false };
+    }
+    
+    // Write tasks to file
+    const { writeFile } = await import('fs/promises');
+    await writeFile(tasksPath, tasks + '\n');
+    
+    // Get preview (first 5 lines)
+    const previewLines = tasks.split('\n').slice(0, 5);
+    const preview = previewLines.join('\n') + (tasks.split('\n').length > 5 ? '\n...' : '');
+    
+    onProgress?.({ type: 'step_completed', message: `Generated ${tasks.split('\n').filter(l => l.includes('[ ]')).length} tasks` });
+    
+    return { success: true, preview };
+  } catch (error) {
+    onProgress?.({ type: 'step_completed', message: 'Task generation failed, using empty template' });
+    return { success: false };
+  }
 }
 
 /**

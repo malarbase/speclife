@@ -29,6 +29,8 @@ export {
 export {
   createClaudeCliAdapter,
   generateImplementationPrompt,
+  generateTaskGenerationPrompt,
+  parseTaskGenerationResponse,
   type ClaudeCliAdapter,
   type ClaudeCliOptions,
   type ClaudeCliResult,
