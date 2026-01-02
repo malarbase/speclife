@@ -1,83 +1,161 @@
+---
+name: /speclife/land
+id: speclife-land
+category: SpecLife
+description: Merge an approved PR, clean up, and trigger auto-release if applicable.
+---
 # /speclife land
 
-Merge an approved PR, clean up the worktree, and trigger auto-release if applicable.
+Merge a PR into main. Works with any PR - yours, team members', or external contributors'.
 
-## Usage
+## TL;DR
 
 ```
-/speclife land
+/speclife land        # Land PR for current branch
+/speclife land #42    # Land specific PR by number
 ```
 
-## Preconditions
+**Quick flow:**
+1. Find PR (from branch or number)
+2. Verify ready (approved, CI passing)
+3. Squash merge + delete branch
+4. Cleanup (worktree if spec branch)
+5. Auto-release if applicable
 
-- PR exists and is approved
-- CI checks passing
-- On a `spec/*` branch (in a worktree)
+## Mode Detection
 
-## Steps
+```bash
+BRANCH=$(git branch --show-current)
+```
 
-1. **Check PR status**: Verify PR is ready to merge
-   - **@github MCP**: Query PR state
-   - **gh CLI**: `gh pr view --json state,reviewDecision,statusCheckRollup`
-   - Confirm: approved + checks passing
+| Invocation | Mode |
+|------------|------|
+| `/speclife land` on feature branch | Land PR for current branch |
+| `/speclife land #42` | Land specific PR |
+| `/speclife land` on main | Prompt for PR number |
 
-2. **Merge PR**: Use squash merge (preferred)
-   - **@github MCP**: Merge via API
-   - **gh CLI**: `gh pr merge --squash --delete-branch`
-   - If merge fails (conflicts, etc.), report and stop
+## Core Steps
 
-3. **Switch to main**: `git checkout main`
+### 1. Find PR
+```bash
+# By branch
+gh pr view --json number,state,reviewDecision
 
-4. **Pull latest**: `git pull`
-   - Get the merged changes
+# By number
+gh pr view 42 --json number,state,reviewDecision
+```
 
-5. **Cleanup worktree**: `speclife worktree rm <change-id>`
-   - Removes `worktrees/<change-id>/` directory
-   - Removes local branch (remote branch deleted by merge)
+### 2. Check Ready
+Required:
+- ✓ State: open
+- ✓ Reviews: approved (or none required)
+- ✓ CI: passing
+- ✓ Mergeable: no conflicts
 
-6. **Check release policy**: Read `openspec/speclife.md` for release policy
-   - Analyze merged commits to determine version bump type
-   - `feat:` → minor bump
-   - `fix:` → patch bump
-   - `BREAKING CHANGE` or `!` → major bump
+If not ready → report issues and stop.
 
-7. **Auto-release** (if policy allows):
-   - If bump type is in auto-release list (usually patch/minor):
-     - Update version in package.json (or equivalent)
-     - Update CHANGELOG.md
-     - Commit with message `chore(release): vX.X.X`
-     - Push and create release PR
-   - If bump type requires manual release (usually major):
-     - Suggest: "Run `/speclife release --major` to create a major release"
+### 3. Merge
+```bash
+gh pr merge $PR --squash --delete-branch
+```
 
-8. **Report**: Confirm merge and any release actions
+### 4. Update Local
+```bash
+git checkout main
+git pull origin main
+```
 
-## Example
+### 5. Cleanup
+| Type | Action |
+|------|--------|
+| Spec branch | `speclife worktree rm <change-id>` |
+| Ad-hoc branch | `git branch -d <branch>` (if local exists) |
+| External PR | Nothing (no local branch) |
 
+### 6. Auto-Release
+Read `openspec/speclife.md` for policy. Analyze commit:
+- `feat:` → minor
+- `fix:` → patch
+- `feat!` or `BREAKING CHANGE` → major (manual)
+
+If auto-release enabled for bump type:
+```bash
+npm version <patch|minor> --no-git-tag-version
+npm version <patch|minor> --no-git-tag-version --workspaces
+git add -A && git commit -m "chore(release): v<version>"
+git push origin main
+```
+
+### 7. Report
+```
+✓ Merged PR #42 (squash)
+✓ Cleaned up worktree
+✓ Released v1.3.0
+```
+
+---
+
+<!-- REFERENCE SECTIONS - Read only when needed -->
+
+## Appendix: Error Handling
+
+**PR not found:**
+```
+❌ No PR found for branch. Run /speclife ship first.
+```
+
+**PR not ready:**
+```
+❌ PR #42 not ready:
+   - Review: changes_requested
+   - CI: failing
+Address issues and retry.
+```
+
+**Merge conflicts:**
+```
+❌ Merge conflicts detected.
+Run /speclife sync, resolve, push, then retry.
+```
+
+**On main without PR number:**
+```
+ℹ️ On main. Which PR to land?
+Recent PRs:
+  #45 - feat: dark mode (approved ✓)
+  #44 - fix: memory leak (needs review)
+```
+
+## Appendix: Examples
+
+**Spec branch:**
 ```
 User: /speclife land
 
 Agent:
-✓ PR #42 is approved and checks passing
-✓ Merged PR #42 (squash)
-✓ Switched to main and pulled latest
-✓ Removed worktree worktrees/add-oauth-login/
-
-Release check:
-  Commit type: feat (minor bump)
-  Release policy: auto-release for patch/minor
-  
-✓ Updated version to 1.3.0
-✓ Created release PR #43: https://github.com/user/repo/pull/43
-
-Done! The feature has been merged. Release PR #43 will auto-merge when approved.
+✓ PR #42 approved, CI passing
+✓ Merged (squash)
+✓ Removed worktree
+✓ Released v1.3.0
 ```
 
-## Notes
+**By PR number (external):**
+```
+User: /speclife land #45
 
-- Archive was already done in `/speclife ship`, so spec is already in archive folder
-- Squash merge keeps history clean (one commit per feature)
-- The release PR triggers GitHub Actions to create tag + release when merged
-- If auto-release is disabled, the agent will suggest manual release command
+Agent:
+ℹ️ PR #45 by @contributor
+✓ Merged (squash)
+✓ Released v1.4.0
+Thanks @contributor!
+```
 
+**Major version:**
+```
+User: /speclife land
 
+Agent:
+✓ Merged PR #50
+ℹ️ Breaking change detected.
+   Run /speclife release --major for v2.0.0
+```

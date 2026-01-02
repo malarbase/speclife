@@ -11,6 +11,7 @@ These instructions are for AI assistants working in this project.
 | Create proposal | `/openspec-proposal` |
 | Implement tasks | `/openspec-apply` |
 | Submit for review | `/speclife ship` |
+| Sync with main | `/speclife sync` |
 | Merge and release | `/speclife land` |
 | Check status | `speclife status` |
 
@@ -24,8 +25,9 @@ These instructions are for AI assistants working in this project.
 
 **SpecLife commands** (git/GitHub automation):
 - `/speclife start` - Create worktree + branch
-- `/speclife ship` - Commit, push, create PR
-- `/speclife land` - Merge PR, cleanup, release
+- `/speclife ship` - Commit, push, create PR (works with ad-hoc branches too)
+- `/speclife sync` - Update branch with latest main
+- `/speclife land` - Merge PR, cleanup, release (supports PR number: `/speclife land #42`)
 - `/speclife release` - Manual release (major versions)
 
 ## Getting Started
