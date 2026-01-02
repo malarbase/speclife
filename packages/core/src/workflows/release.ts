@@ -242,6 +242,18 @@ When merged:
   
   onProgress?.({ type: 'step_completed', message: `Created PR #${pr.number}: ${pr.url}` });
   
+  // Enable auto-merge if requested
+  let autoMergeEnabled = false;
+  if (options.autoMerge) {
+    onProgress?.({ type: 'step_completed', message: 'Enabling auto-merge...' });
+    autoMergeEnabled = await github.enableAutoMerge(pr.number, 'SQUASH');
+    if (autoMergeEnabled) {
+      onProgress?.({ type: 'step_completed', message: 'Auto-merge enabled - PR will merge when CI passes' });
+    } else {
+      onProgress?.({ type: 'step_completed', message: 'Auto-merge not available (check repo settings)' });
+    }
+  }
+  
   return {
     version: newVersion,
     previousVersion,
@@ -250,6 +262,7 @@ When merged:
     changelog,
     prUrl: pr.url,
     branch: releaseBranch,
+    autoMergeEnabled,
   };
 }
 

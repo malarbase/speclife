@@ -34,6 +34,9 @@ const ReleaseArgsSchema = z.object({
   skipChangelog: z.boolean().optional().describe(
     "Skip changelog generation (default: false)"
   ),
+  autoMerge: z.boolean().optional().describe(
+    "Enable auto-merge on the release PR (default: true for patch/minor, false for major). Requires repo settings to allow auto-merge."
+  ),
 });
 
 export function registerReleaseTool(server: McpServer): void {
@@ -76,12 +79,17 @@ export function registerReleaseTool(server: McpServer): void {
           }
         }
         
+        // Determine auto-merge: default to true for patch/minor, false for major
+        // User can override with explicit --autoMerge flag
+        const shouldAutoMerge = parsed.autoMerge ?? (forcedBumpType !== 'major');
+        
         // Run workflow
         const result = await releaseWorkflow(
           {
             version,
             dryRun: parsed.dryRun,
             skipChangelog: parsed.skipChangelog,
+            autoMerge: shouldAutoMerge,
           },
           { git, github, repoPath: cwd }
         );
@@ -141,11 +149,22 @@ export function registerReleaseTool(server: McpServer): void {
             lines.push('✓ Generated changelog');
           }
           lines.push(`✓ Created PR: ${result.prUrl}`);
-          lines.push('');
-          lines.push('**Next steps:**');
-          lines.push('1. Review and merge the release PR');
-          lines.push('2. CI will automatically create git tag and GitHub release');
-          lines.push('3. CI will publish packages to npm');
+          
+          if (result.autoMergeEnabled) {
+            lines.push(`✓ 🤖 Auto-merge enabled - will merge when CI passes`);
+            lines.push('');
+            lines.push('**Release will happen automatically once CI passes!**');
+          } else {
+            lines.push('');
+            lines.push('**Next steps:**');
+            lines.push('1. Review and merge the release PR');
+            lines.push('2. CI will automatically create git tag and GitHub release');
+            lines.push('3. CI will publish packages to npm');
+            if (shouldAutoMerge) {
+              lines.push('');
+              lines.push('💡 Auto-merge was requested but not available. Enable in repo settings for fully automated releases.');
+            }
+          }
         } else {
           lines.push('---');
           lines.push('Run `speclife_release` without `--dry-run` to create the release PR.');
