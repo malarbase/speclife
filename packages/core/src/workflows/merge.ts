@@ -12,6 +12,7 @@ import {
   SpecLifeError, 
   ErrorCodes, 
   type PullRequest, 
+  type Release,
   type ProgressCallback,
   type VersionBumpOption,
   type VersionBumpType,
@@ -29,6 +30,8 @@ export interface MergeOptions {
   removeWorktree?: boolean;
   /** Version bump type: 'auto' uses AI analysis, 'none' skips bump (default: 'auto') */
   versionBump?: VersionBumpOption;
+  /** Create GitHub release after version bump (default: true when version is bumped) */
+  createRelease?: boolean;
 }
 
 export interface MergeResult {
@@ -46,6 +49,8 @@ export interface MergeResult {
   versionAnalysis?: VersionAnalysis;
   /** New version after bump (if version was bumped) */
   newVersion?: string;
+  /** GitHub release created (if createRelease was enabled) */
+  release?: Release;
 }
 
 interface MergeDependencies {
@@ -153,6 +158,68 @@ async function bumpVersion(
 }
 
 /**
+ * Extract the "Why" section from a proposal
+ */
+function extractWhySection(proposal: string): string {
+  const lines = proposal.split('\n');
+  let inWhySection = false;
+  const whyLines: string[] = [];
+  
+  for (const line of lines) {
+    if (line.match(/^##?\s*Why/i)) {
+      inWhySection = true;
+      continue;
+    }
+    if (inWhySection && line.match(/^##?\s/)) {
+      // Next section started
+      break;
+    }
+    if (inWhySection) {
+      whyLines.push(line);
+    }
+  }
+  
+  return whyLines.join('\n').trim() || 'No description provided.';
+}
+
+/**
+ * Generate release notes from the change proposal and version analysis
+ */
+function generateReleaseNotes(
+  changeId: string,
+  proposal: string,
+  versionAnalysis?: VersionAnalysis
+): string {
+  const sections: string[] = [];
+  
+  // Title from change ID
+  const title = changeId.split('-').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+  
+  sections.push(`## ${title}`);
+  sections.push('');
+  
+  // Why section from proposal
+  const why = extractWhySection(proposal);
+  sections.push(why);
+  sections.push('');
+  
+  // Version analysis if available
+  if (versionAnalysis) {
+    sections.push(`### Version Bump: ${versionAnalysis.bump}`);
+    sections.push('');
+    sections.push(versionAnalysis.reasoning);
+    sections.push('');
+  }
+  
+  sections.push('---');
+  sections.push('*Released via [SpecLife](https://github.com/malarbase/speclife)*');
+  
+  return sections.join('\n');
+}
+
+/**
  * Merge a submitted change: merge PR, sync main, cleanup
  */
 export async function mergeWorkflow(
@@ -160,7 +227,7 @@ export async function mergeWorkflow(
   deps: MergeDependencies,
   onProgress?: ProgressCallback
 ): Promise<MergeResult> {
-  const { changeId, method = 'squash', deleteBranch = true, removeWorktree = true, versionBump = 'auto' } = options;
+  const { changeId, method = 'squash', deleteBranch = true, removeWorktree = true, versionBump = 'auto', createRelease = true } = options;
   const { git, github, config, claudeCli, openspec } = deps;
 
   const branch = `spec/${changeId}`;
@@ -260,6 +327,7 @@ export async function mergeWorkflow(
 
   // Execute version bump if needed (always from main repo, not worktree)
   let newVersion: string | undefined;
+  let versionCommitSha: string | undefined;
   if (bumpType && mainSynced) {
     // Get the main repo path - version bump must happen there, not in a worktree
     const mainRepoPath = await git.getMainWorktreePath();
@@ -272,11 +340,48 @@ export async function mergeWorkflow(
     // Commit version bump
     onProgress?.({ type: 'step_completed', message: `Committing version bump to ${newVersion}` });
     await mainGit.add(['package.json', 'package-lock.json', 'packages/*/package.json']);
-    await mainGit.commit(`chore: release v${newVersion}`);
+    versionCommitSha = await mainGit.commit(`chore: release v${newVersion}`);
     
     // Push to remote
     onProgress?.({ type: 'step_completed', message: 'Pushing version bump' });
     await mainGit.push('origin', baseBranch);
+  }
+
+  // Create GitHub release if requested and version was bumped
+  let release: Release | undefined;
+  if (createRelease && newVersion && versionCommitSha) {
+    onProgress?.({ type: 'step_completed', message: `Creating tag v${newVersion}` });
+    
+    // Create tag via GitHub API
+    const tag = `v${newVersion}`;
+    await github.createTag({
+      tag,
+      sha: versionCommitSha,
+      message: `Release ${tag}`,
+    });
+    
+    // Read proposal for release notes
+    let proposal = '';
+    if (openspec) {
+      try {
+        proposal = await openspec.readProposal(changeId);
+      } catch {
+        // Proposal might not exist; continue with minimal notes
+      }
+    }
+    
+    // Generate release notes
+    const releaseNotes = generateReleaseNotes(changeId, proposal, versionAnalysis);
+    
+    // Create GitHub release
+    onProgress?.({ type: 'step_completed', message: `Creating GitHub release ${tag}` });
+    release = await github.createRelease({
+      tag,
+      name: tag,
+      body: releaseNotes,
+    });
+    
+    onProgress?.({ type: 'step_completed', message: `Released: ${release.url}` });
   }
 
   // Delete local branch
@@ -313,6 +418,7 @@ export async function mergeWorkflow(
     worktreePath: worktreeRemoved ? worktreePath : undefined,
     versionAnalysis,
     newVersion,
+    release,
   };
 }
 

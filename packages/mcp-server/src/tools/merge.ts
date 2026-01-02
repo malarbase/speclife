@@ -31,6 +31,9 @@ const MergeArgsSchema = z.object({
   versionBump: z.enum(['auto', 'patch', 'minor', 'major', 'none']).optional().describe(
     "Version bump type after merge. 'auto' uses AI to analyze changes and determine bump type (default). 'none' skips version bump."
   ),
+  createRelease: z.boolean().optional().describe(
+    "Create GitHub release after version bump (default: true when version is bumped)"
+  ),
 });
 
 export function registerMergeTool(server: McpServer): void {
@@ -51,10 +54,14 @@ export function registerMergeTool(server: McpServer): void {
           repo: config.github.repo,
         });
         
-        // Create optional adapters for version analysis
+        // Create optional adapters for version analysis and release notes
         const versionBump = parsed.versionBump ?? 'auto';
+        const createRelease = parsed.createRelease ?? true;
         const claudeCli = versionBump === 'auto' ? createClaudeCliAdapter() : undefined;
-        const openspec = versionBump === 'auto' ? createOpenSpecAdapter({ projectRoot: cwd }) : undefined;
+        // OpenSpec adapter needed for both auto version bump and release notes
+        const openspec = (versionBump === 'auto' || createRelease) 
+          ? createOpenSpecAdapter({ projectRoot: cwd }) 
+          : undefined;
         
         // Run workflow
         const result = await mergeWorkflow(
@@ -64,6 +71,7 @@ export function registerMergeTool(server: McpServer): void {
             deleteBranch: parsed.deleteBranch,
             removeWorktree: parsed.removeWorktree,
             versionBump,
+            createRelease,
           },
           { git, github, config, claudeCli, openspec }
         );
@@ -87,6 +95,10 @@ export function registerMergeTool(server: McpServer): void {
         if (result.newVersion) {
           lines.push(`✓ Bumped version to v${result.newVersion}`);
           lines.push(`✓ Pushed version commit to ${config.github.baseBranch}`);
+        }
+        
+        if (result.release) {
+          lines.push(`✓ Created GitHub release: ${result.release.url}`);
         }
         
         if (result.branchDeleted) {

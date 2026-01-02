@@ -56,6 +56,14 @@ export interface PullRequest {
   draft: boolean;
 }
 
+/** GitHub release information */
+export interface Release {
+  id: number;
+  url: string;
+  tag: string;
+  name: string;
+}
+
 /** Structured error for SpecLife operations */
 export class SpecLifeError extends Error {
   constructor(
