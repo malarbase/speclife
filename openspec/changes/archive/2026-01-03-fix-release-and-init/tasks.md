@@ -22,7 +22,11 @@
 - [x] Add error logging when template copy fails (don't silently swallow)
 - [x] Add `convert.md` to the list of commands to copy (was added in previous PR)
 
-## 4. Testing
+## 4. Clarify `/speclife ship` archive step
+- [x] Update ship.md to explicitly require `/openspec-archive` invocation
+- [x] Add warning that manual `mv` is not sufficient
+
+## 5. Testing
 - [ ] Test minor release flow end-to-end
 - [ ] Test major release with confirmation
 - [ ] Test init creates all command files

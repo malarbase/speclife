@@ -81,6 +81,14 @@ Update `speclife-release.yml` to:
 
 Ensure `speclife init` properly creates slash command files in `openspec/commands/speclife/`.
 
+### 5. Clarify Archive Step in `/speclife ship`
+
+The `ship.md` command mentions `/openspec-archive` but doesn't emphasize that it must be **invoked as a command** (not just a manual `mv`). The `openspec archive` CLI does more than move files—it updates project.md and other specs.
+
+Update ship.md to:
+- Add explicit "⚡ Required" callout for archive invocation
+- Note that manual file moves are NOT sufficient
+
 ## Acceptance Criteria
 
 - [ ] `/speclife land` bumps version in feature branch before merge
@@ -88,6 +96,7 @@ Ensure `speclife init` properly creates slash command files in `openspec/command
 - [ ] Breaking changes prompt for confirmation
 - [ ] GitHub Actions creates release on version change
 - [ ] `speclife init` creates all slash command files
+- [ ] `/speclife ship` explicitly requires `/openspec-archive` invocation
 
 ## Out of Scope
 
