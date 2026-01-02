@@ -166,3 +166,44 @@ export interface ReleaseResult {
   /** Whether auto-merge was enabled on the PR */
   autoMergeEnabled?: boolean;
 }
+
+/** Progress information for a change */
+export interface ChangeProgress {
+  /** Number of completed tasks */
+  completed: number;
+  /** Total number of tasks */
+  total: number;
+  /** Completion percentage (0-100) */
+  percentage: number;
+}
+
+/** PR status for display */
+export type PRDisplayStatus = 'draft' | 'ready' | 'merged' | 'closed' | 'local';
+
+/** Enriched change item for list display */
+export interface ChangeListItem {
+  /** Change identifier */
+  id: string;
+  /** Task progress */
+  progress: ChangeProgress;
+  /** PR status */
+  prStatus: PRDisplayStatus;
+  /** PR number if exists */
+  prNumber?: number;
+  /** PR URL if exists */
+  prUrl?: string;
+  /** Last activity timestamp */
+  lastActive?: Date;
+  /** Whether this is the current branch */
+  isCurrent: boolean;
+}
+
+/** Options for listing changes */
+export interface ListOptions {
+  /** Show compact single-line output */
+  compact?: boolean;
+  /** Filter by PR status */
+  status?: PRDisplayStatus;
+  /** Sort order */
+  sort?: 'activity' | 'progress' | 'name';
+}
