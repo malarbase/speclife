@@ -46,11 +46,19 @@ Auto-detect project commands (test, build, lint), publishing configuration, and 
 
 7. **Update speclife.md**: Write discovered values to `openspec/speclife.md`
 
-8. **Report**: Tell the user what was configured and suggest any manual additions
+8. **Offer to create publish workflow** (if missing):
+   - If no publish workflow exists AND project is publishable (not private, not Go):
+     - Ask: "No publish workflow found. Would you like me to create `.github/workflows/publish.yml`?"
+     - If user agrees, create the appropriate workflow from the templates below
+     - Remind user to add the required secret in repo settings
+   - If project is private (`"private": true`) or Go (no central registry):
+     - Skip this step (no publish workflow needed)
 
-## Publish Workflow Suggestions
+9. **Report**: Tell the user what was configured and any next steps
 
-If no publish workflow exists, suggest based on project type:
+## Publish Workflow Templates
+
+Use these templates when creating publish workflows:
 
 ### Node.js (single package)
 ```yaml
@@ -180,6 +188,7 @@ When implementing changes, always read:
 
 ## Example Output
 
+### When publish workflow exists:
 ```
 User: /speclife setup
 
@@ -206,11 +215,69 @@ Context files:
 ✓ Updated openspec/speclife.md
 ```
 
+### When publish workflow is missing:
+```
+User: /speclife setup
+
+Agent:
+Detecting project configuration...
+
+✓ Project type: Node.js (single package)
+✓ Package: my-awesome-lib
+
+Commands detected:
+  ✓ Test: npm test
+  ✓ Build: npm run build
+  ✓ Lint: npm run lint
+
+Workflows:
+  ✓ Release: .github/workflows/release.yml
+  ⚠ Publish: Not found
+
+This package appears to be publishable to npm. Would you like me to create 
+`.github/workflows/publish.yml`?
+
+User: yes
+
+Agent:
+✓ Created .github/workflows/publish.yml
+
+⚠️ Remember to add NPM_TOKEN to your repository secrets:
+   GitHub → Settings → Secrets and variables → Actions → New repository secret
+   
+   Get your token from: https://www.npmjs.com/settings/~/tokens
+
+✓ Updated openspec/speclife.md
+
+Done! Your project is configured for automated releases and publishing.
+```
+
+### When project is private:
+```
+User: /speclife setup
+
+Agent:
+Detecting project configuration...
+
+✓ Project type: Node.js (private package)
+
+Commands detected:
+  ✓ Test: npm test
+  ✓ Build: npm run build
+
+Workflows:
+  ✓ Release: .github/workflows/release.yml
+  ℹ Publish: Not needed (private package)
+
+✓ Updated openspec/speclife.md
+```
+
 ## Notes
 
 - If a command can't be detected, leave it as a TODO for the user
 - Don't overwrite user customizations if speclife.md already exists
 - This command is idempotent - safe to run multiple times
-- If publish workflow is missing, show the appropriate template and remind about secrets
+- Always ask before creating publish workflow (don't auto-create)
+- Remind about secrets after creating publish workflow
 
 
