@@ -11,6 +11,13 @@ github:
 testCommand: npm test
 buildCommand: npm run build
 
+# Auto-release configuration
+release:
+  auto:
+    patch: true   # Auto-create release PR for patch bumps
+    minor: true   # Auto-create release PR for minor bumps
+    major: false  # Require manual speclife_release for major
+
 # Files always included in AI context
 contextFiles:
   - openspec/project.md
