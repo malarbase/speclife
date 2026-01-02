@@ -300,30 +300,62 @@ async function configureEditorSymlinks(cwd: string, specDir: string, force: bool
   ];
   
   const sourceDir = join(cwd, specDir, 'commands', 'speclife');
+  const slashCommands = ['setup', 'start', 'implement', 'ship', 'land', 'release', 'sync', 'convert'];
   
   for (const editor of editors) {
     const editorCommandsDir = join(cwd, editor.dir, 'commands', 'speclife');
+    const editorCommandsBase = join(cwd, editor.dir, 'commands');
     
     try {
       // Check if source commands exist
       await access(sourceDir);
       
       // Create editor commands directory
-      await mkdir(dirname(editorCommandsDir), { recursive: true });
+      await mkdir(editorCommandsBase, { recursive: true });
       
-      // Create symlink (or update if force)
+      // Create symlink for speclife/ directory (or update if force)
       try {
         await access(editorCommandsDir);
         if (force) {
           await unlink(editorCommandsDir);
           await symlink(sourceDir, editorCommandsDir);
-          console.log(`✓ Updated ${editor.name} symlink`);
+          console.log(`✓ Updated ${editor.name} speclife/ symlink`);
         } else {
           console.log(`✓ ${editor.name} commands already configured`);
         }
       } catch {
         await symlink(sourceDir, editorCommandsDir);
         console.log(`✓ Configured ${editor.name} commands`);
+      }
+      
+      // Create dash-prefixed symlinks for each command
+      // e.g., speclife-release.md → speclife/release.md
+      let dashLinksCreated = 0;
+      for (const cmd of slashCommands) {
+        const dashFile = join(editorCommandsBase, `speclife-${cmd}.md`);
+        // Use relative path for symlink to be portable
+        const targetFile = join('speclife', `${cmd}.md`);
+        
+        try {
+          await access(dashFile);
+          if (force) {
+            await unlink(dashFile);
+            await symlink(targetFile, dashFile);
+            dashLinksCreated++;
+          }
+          // else: skip existing
+        } catch {
+          // File doesn't exist, create symlink
+          try {
+            await symlink(targetFile, dashFile);
+            dashLinksCreated++;
+          } catch {
+            // Skip if target doesn't exist
+          }
+        }
+      }
+      if (dashLinksCreated > 0) {
+        console.log(`✓ Created ${dashLinksCreated} ${editor.name} dash-prefixed command symlinks`);
       }
     } catch {
       // Source doesn't exist yet, skip
