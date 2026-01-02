@@ -1,6 +1,6 @@
 {
   "name": "@speclife/cli",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "CLI for SpecLife - for CI/scripts",
   "repository": {
     "type": "git",

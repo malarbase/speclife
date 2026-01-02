@@ -1,5 +1,5 @@
 ---
-name: /speclife/sync
+name: /speclife-sync
 id: speclife-sync
 category: SpecLife
 description: Update current branch with latest changes from main.

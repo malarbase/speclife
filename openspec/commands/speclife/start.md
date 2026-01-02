@@ -1,5 +1,5 @@
 ---
-name: /speclife/start
+name: /speclife-start
 id: speclife-start
 category: SpecLife
 description: Create a new branch for a change, optionally in a worktree for parallel work.

@@ -1,5 +1,5 @@
 ---
-name: /speclife/land
+name: /speclife-land
 id: speclife-land
 category: SpecLife
 description: Merge an approved PR, clean up, and trigger auto-release if applicable.

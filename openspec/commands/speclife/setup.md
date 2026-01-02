@@ -1,3 +1,9 @@
+---
+name: /speclife-setup
+id: speclife-setup
+category: SpecLife
+description: Discover project configuration and populate openspec/speclife.md.
+---
 # /speclife setup
 
 Discover project configuration and populate `openspec/speclife.md`.
