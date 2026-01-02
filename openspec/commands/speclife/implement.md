@@ -2,6 +2,12 @@
 
 Convenience proxy to `/openspec-apply`.
 
+## ⚡ Execution
+
+**When this command is invoked, IMMEDIATELY invoke `/openspec-apply`.**
+
+This is a thin proxy—do not add additional behavior.
+
 ## Usage
 
 ```

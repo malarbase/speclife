@@ -2,6 +2,15 @@
 
 Discover project configuration and populate `openspec/speclife.md`.
 
+## ⚡ Execution
+
+**When this command is invoked, IMMEDIATELY execute the workflow below.**
+
+- Scan project files to detect build system and commands
+- Check for existing workflows and context files
+- Update `openspec/speclife.md` with discovered configuration
+- Offer to create publish workflow if missing (ask first)
+
 ## Goal
 
 Auto-detect project commands (test, build, lint), publishing configuration, and context files to configure speclife for this project.

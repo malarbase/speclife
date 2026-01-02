@@ -8,6 +8,16 @@ description: Merge an approved PR, clean up, and trigger auto-release if applica
 
 Merge a PR into main. Works with any PR - yours, team members', or external contributors'.
 
+## ⚡ Execution
+
+**When this command is invoked, IMMEDIATELY execute the workflow below.**
+
+- Do NOT skip steps or ask for excessive confirmation
+- If PR number is provided (#42), use that PR
+- If on a feature branch, find the PR for that branch
+- If on main, prompt for PR number
+- **STOP after reporting—this is a terminal command in the workflow**
+
 ## TL;DR
 
 ```
@@ -66,11 +76,24 @@ git pull origin main
 ```
 
 ### 5. Cleanup
+
 | Type | Action |
 |------|--------|
-| Spec branch | `speclife worktree rm <change-id>` |
+| Spec branch with worktree | `speclife worktree rm <change-id>` |
+| Spec branch (no worktree) | `git branch -d spec/<change-id>` |
 | Ad-hoc branch | `git branch -d <branch>` (if local exists) |
 | External PR | Nothing (no local branch) |
+
+**Detection:**
+```bash
+CHANGE_ID=${BRANCH#spec/}
+WORKTREE_PATH="worktrees/$CHANGE_ID"
+if [[ -d "$WORKTREE_PATH" ]]; then
+  speclife worktree rm $CHANGE_ID  # removes worktree + branch
+else
+  git branch -d $BRANCH            # just removes branch
+fi
+```
 
 ### 6. Auto-Release
 Read `openspec/speclife.md` for policy. Analyze commit:
@@ -86,12 +109,14 @@ git add -A && git commit -m "chore(release): v<version>"
 git push origin main
 ```
 
-### 7. Report
+### 7. Report and STOP
 ```
 ✓ Merged PR #42 (squash)
 ✓ Cleaned up worktree
 ✓ Released v1.3.0
 ```
+
+**⛔ STOP HERE.** This is the end of the change lifecycle. The workflow is complete.
 
 ---
 
