@@ -3,6 +3,11 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_call:
+    secrets:
+      NPM_TOKEN:
+        description: 'npm access token for publishing'
+        required: true
 
 jobs:
   publish:
