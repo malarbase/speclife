@@ -165,6 +165,13 @@ This file provides context for AI agents using speclife slash commands.
 - **Auto-release:** patch and minor versions
 - **Manual release:** major versions (breaking changes)
 
+## Publish
+
+<!-- Auto-detected by /speclife setup -->
+- **Registry:** TODO: detect (npm / PyPI / crates.io / None)
+- **Workflow:** TODO: check .github/workflows/publish.yml
+- **Secret:** TODO: NPM_TOKEN / PYPI_TOKEN / CARGO_REGISTRY_TOKEN
+
 ## Context Files
 
 When implementing changes, always read:
@@ -174,7 +181,7 @@ When implementing changes, always read:
 
 ## Notes
 
-- Run \`/speclife setup\` to auto-detect commands
+- Run \`/speclife setup\` to auto-detect commands and publish config
 - Or manually edit the TODO items above
 `;
         await writeFile(speclifeMdPath, speclifeMdContent);

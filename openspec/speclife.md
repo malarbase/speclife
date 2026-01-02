@@ -27,6 +27,14 @@ Controls how `/speclife land` handles releases after merging:
 - **Manual release:** major versions (breaking changes)
   - Prompts user to run `/speclife release --major`
 
+## Publish
+
+<!-- Auto-detected by /speclife setup -->
+- **Registry:** npm
+- **Packages:** @speclife/core, @speclife/cli, @speclife/mcp-server (monorepo)
+- **Workflow:** `.github/workflows/publish.yml` ✓
+- **Secret:** `NPM_TOKEN` (configured in repo settings)
+
 ## Context Files
 
 When implementing changes, always read:
