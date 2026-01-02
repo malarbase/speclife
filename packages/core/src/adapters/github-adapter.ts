@@ -3,7 +3,7 @@
  */
 
 import { Octokit } from '@octokit/rest';
-import { SpecLifeError, ErrorCodes, type PullRequest, type Release } from '../types.js';
+import { SpecLifeError, ErrorCodes, type PullRequest } from '../types.js';
 
 /** GitHub operations interface */
 export interface GitHubAdapter {
@@ -36,22 +36,6 @@ export interface GitHubAdapter {
   
   /** Mark a draft PR as ready for review */
   markPullRequestReady(number: number): Promise<PullRequest>;
-  
-  /** Create a GitHub release */
-  createRelease(params: {
-    tag: string;
-    name: string;
-    body: string;
-    draft?: boolean;
-    prerelease?: boolean;
-  }): Promise<Release>;
-  
-  /** Create a git tag via GitHub API */
-  createTag(params: {
-    tag: string;
-    sha: string;
-    message?: string;
-  }): Promise<void>;
 }
 
 interface GitHubAdapterOptions {
@@ -218,56 +202,5 @@ export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapte
         draft: data.draft ?? false,
       };
     },
-    
-    async createRelease(params): Promise<Release> {
-      const { data } = await octokit.repos.createRelease({
-        owner,
-        repo,
-        tag_name: params.tag,
-        name: params.name,
-        body: params.body,
-        draft: params.draft,
-        prerelease: params.prerelease,
-      });
-      
-      return {
-        id: data.id,
-        url: data.html_url,
-        tag: data.tag_name,
-        name: data.name ?? params.name,
-      };
-    },
-    
-    async createTag(params): Promise<void> {
-      // Create an annotated tag object if message provided, otherwise lightweight
-      if (params.message) {
-        // Create annotated tag object
-        const { data: tagObject } = await octokit.git.createTag({
-          owner,
-          repo,
-          tag: params.tag,
-          message: params.message,
-          object: params.sha,
-          type: 'commit',
-        });
-        
-        // Create ref pointing to the tag object
-        await octokit.git.createRef({
-          owner,
-          repo,
-          ref: `refs/tags/${params.tag}`,
-          sha: tagObject.sha,
-        });
-      } else {
-        // Create lightweight tag (just a ref)
-        await octokit.git.createRef({
-          owner,
-          repo,
-          ref: `refs/tags/${params.tag}`,
-          sha: params.sha,
-        });
-      }
-    },
   };
 }
-

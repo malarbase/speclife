@@ -56,14 +56,6 @@ export interface PullRequest {
   draft: boolean;
 }
 
-/** GitHub release information */
-export interface Release {
-  id: number;
-  url: string;
-  tag: string;
-  name: string;
-}
-
 /** Structured error for SpecLife operations */
 export class SpecLifeError extends Error {
   constructor(
@@ -130,18 +122,3 @@ export interface ProgressEvent {
 
 /** Progress callback type */
 export type ProgressCallback = (event: ProgressEvent) => void;
-
-/** Version bump types for semantic versioning */
-export type VersionBumpType = 'patch' | 'minor' | 'major';
-
-/** Result of AI version bump analysis */
-export interface VersionAnalysis {
-  /** Recommended bump type */
-  bump: VersionBumpType;
-  /** AI reasoning for the recommendation */
-  reasoning: string;
-}
-
-/** Options for version bump during merge */
-export type VersionBumpOption = VersionBumpType | 'auto' | 'none';
-
