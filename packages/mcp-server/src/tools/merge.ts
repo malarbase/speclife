@@ -1,7 +1,8 @@
 /**
  * speclife_merge tool
  * 
- * Merge PR, sync main, cleanup worktree/branch, and auto-bump version
+ * Merge PR, sync main, cleanup worktree/branch.
+ * Version bumping and releases are handled by GitHub Actions (release-please).
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -9,8 +10,6 @@ import {
   loadConfig, 
   createGitAdapter, 
   createGitHubAdapter,
-  createClaudeCliAdapter,
-  createOpenSpecAdapter,
   mergeWorkflow 
 } from "@speclife/core";
 import { z } from "zod";
@@ -28,15 +27,12 @@ const MergeArgsSchema = z.object({
   removeWorktree: z.boolean().optional().describe(
     "Remove worktree after merge if applicable (default: true)"
   ),
-  versionBump: z.enum(['auto', 'patch', 'minor', 'major', 'none']).optional().describe(
-    "Version bump type after merge. 'auto' uses AI to analyze changes and determine bump type (default). 'none' skips version bump."
-  ),
 });
 
 export function registerMergeTool(server: McpServer): void {
   server.tool(
     "speclife_merge",
-    "Merge a submitted PR, sync main branch, cleanup local branch/worktree, and bump version",
+    "Merge a submitted PR, sync main branch, and cleanup local branch/worktree. Version bumping and releases are handled automatically by CI.",
     MergeArgsSchema.shape,
     async (args) => {
       try {
@@ -51,11 +47,6 @@ export function registerMergeTool(server: McpServer): void {
           repo: config.github.repo,
         });
         
-        // Create optional adapters for version analysis
-        const versionBump = parsed.versionBump ?? 'auto';
-        const claudeCli = versionBump === 'auto' ? createClaudeCliAdapter() : undefined;
-        const openspec = versionBump === 'auto' ? createOpenSpecAdapter({ projectRoot: cwd }) : undefined;
-        
         // Run workflow
         const result = await mergeWorkflow(
           {
@@ -63,9 +54,8 @@ export function registerMergeTool(server: McpServer): void {
             method: parsed.method,
             deleteBranch: parsed.deleteBranch,
             removeWorktree: parsed.removeWorktree,
-            versionBump,
           },
-          { git, github, config, claudeCli, openspec }
+          { git, github, config }
         );
         
         const lines = [
@@ -76,19 +66,6 @@ export function registerMergeTool(server: McpServer): void {
           lines.push(`✓ Synced ${config.github.baseBranch} with latest changes`);
         }
         
-        // Show version analysis and bump info
-        if (result.versionAnalysis) {
-          lines.push('');
-          lines.push(`📊 Version Analysis:`);
-          lines.push(`   Bump: ${result.versionAnalysis.bump}`);
-          lines.push(`   Reasoning: ${result.versionAnalysis.reasoning}`);
-        }
-        
-        if (result.newVersion) {
-          lines.push(`✓ Bumped version to v${result.newVersion}`);
-          lines.push(`✓ Pushed version commit to ${config.github.baseBranch}`);
-        }
-        
         if (result.branchDeleted) {
           lines.push(`✓ Deleted local branch spec/${parsed.changeId}`);
         }
@@ -97,11 +74,10 @@ export function registerMergeTool(server: McpServer): void {
           lines.push(`✓ Removed worktree at ${result.worktreePath}`);
         }
         
-        lines.push('', 'Change complete! You are now on the main branch with the merged changes.');
-        
-        if (result.newVersion) {
-          lines.push(`CI will automatically publish v${result.newVersion} to npm.`);
-        }
+        lines.push('');
+        lines.push('Change complete! You are now on the main branch with the merged changes.');
+        lines.push('');
+        lines.push('📦 CI will automatically handle version bump and release.');
         
         return {
           content: [{ type: "text", text: lines.join("\n") }],
@@ -116,4 +92,3 @@ export function registerMergeTool(server: McpServer): void {
     }
   );
 }
-

@@ -29,8 +29,6 @@ export {
 export {
   createClaudeCliAdapter,
   generateImplementationPrompt,
-  generateVersionAnalysisPrompt,
-  parseVersionAnalysisResponse,
   type ClaudeCliAdapter,
   type ClaudeCliOptions,
   type ClaudeCliResult,

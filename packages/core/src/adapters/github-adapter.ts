@@ -204,4 +204,3 @@ export function createGitHubAdapter(options: GitHubAdapterOptions): GitHubAdapte
     },
   };
 }
-
