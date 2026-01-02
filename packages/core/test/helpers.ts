@@ -120,6 +120,11 @@ export function createMockGitAdapter(overrides: Partial<MockGitAdapter> = {}): M
     removeWorktree: vi.fn().mockResolvedValue(undefined),
     listWorktrees: vi.fn().mockResolvedValue([]),
     getMainWorktreePath: vi.fn().mockResolvedValue('/mock/main/repo'),
+    // Tag operations for releases
+    getLatestTag: vi.fn().mockResolvedValue(null),
+    getCommitsSince: vi.fn().mockResolvedValue([]),
+    createTag: vi.fn().mockResolvedValue(undefined),
+    tagExists: vi.fn().mockResolvedValue(false),
     ...overrides,
   };
 }
@@ -142,6 +147,11 @@ export interface MockGitAdapter {
   removeWorktree: ReturnType<typeof vi.fn>;
   listWorktrees: ReturnType<typeof vi.fn>;
   getMainWorktreePath: ReturnType<typeof vi.fn>;
+  // Tag operations for releases
+  getLatestTag: ReturnType<typeof vi.fn>;
+  getCommitsSince: ReturnType<typeof vi.fn>;
+  createTag: ReturnType<typeof vi.fn>;
+  tagExists: ReturnType<typeof vi.fn>;
 }
 
 /**
