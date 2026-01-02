@@ -9,6 +9,7 @@ import { registerListTool } from "./list.js";
 import { registerSubmitTool } from "./submit.js";
 import { registerMergeTool } from "./merge.js";
 import { registerImplementTool } from "./implement.js";
+import { registerReleaseTool } from "./release.js";
 
 /**
  * Register all SpecLife tools with the MCP server
@@ -25,5 +26,8 @@ export function registerTools(server: McpServer): void {
   
   // Phase 3: Implement (includes internal test loop)
   registerImplementTool(server);
+  
+  // Phase 5: Release management
+  registerReleaseTool(server);
 }
 

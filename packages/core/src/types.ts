@@ -122,3 +122,43 @@ export interface ProgressEvent {
 
 /** Progress callback type */
 export type ProgressCallback = (event: ProgressEvent) => void;
+
+/** Version bump types */
+export type VersionBumpType = 'major' | 'minor' | 'patch';
+
+/** Commit information for version analysis */
+export interface CommitInfo {
+  sha: string;
+  message: string;
+  type?: string; // feat, fix, chore, etc.
+  scope?: string;
+  isBreaking: boolean;
+}
+
+/** Options for the release workflow */
+export interface ReleaseOptions {
+  /** Explicit version to release (skips analysis) */
+  version?: string;
+  /** Don't create PR, just show what would happen */
+  dryRun?: boolean;
+  /** Skip changelog generation */
+  skipChangelog?: boolean;
+}
+
+/** Result of the release workflow */
+export interface ReleaseResult {
+  /** The new version */
+  version: string;
+  /** Previous version */
+  previousVersion: string;
+  /** Suggested bump type */
+  bumpType: VersionBumpType;
+  /** Commits included in this release */
+  commits: CommitInfo[];
+  /** Generated changelog content */
+  changelog?: string;
+  /** URL of the created PR (if not dry run) */
+  prUrl?: string;
+  /** Release branch name */
+  branch?: string;
+}

@@ -77,7 +77,7 @@ export function registerMergeTool(server: McpServer): void {
         lines.push('');
         lines.push('Change complete! You are now on the main branch with the merged changes.');
         lines.push('');
-        lines.push('📦 CI will automatically handle version bump and release.');
+        lines.push('💡 Ready to release? Run `speclife_release` to create a release PR.');
         
         return {
           content: [{ type: "text", text: lines.join("\n") }],
