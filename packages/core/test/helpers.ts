@@ -178,6 +178,7 @@ export function createMockGitHubAdapter(overrides: Partial<MockGitHubAdapter> = 
       mergeable: true,
     }),
     getPullRequestByBranch: vi.fn().mockResolvedValue(null),
+    getPullRequestDiff: vi.fn().mockResolvedValue(''),
     isPullRequestMergeable: vi.fn().mockResolvedValue({ mergeable: true }),
     mergePullRequest: vi.fn().mockResolvedValue(undefined),
     markPullRequestReady: vi.fn().mockResolvedValue({
@@ -196,6 +197,7 @@ export interface MockGitHubAdapter {
   createPullRequest: ReturnType<typeof vi.fn>;
   getPullRequest: ReturnType<typeof vi.fn>;
   getPullRequestByBranch: ReturnType<typeof vi.fn>;
+  getPullRequestDiff: ReturnType<typeof vi.fn>;
   isPullRequestMergeable: ReturnType<typeof vi.fn>;
   mergePullRequest: ReturnType<typeof vi.fn>;
   markPullRequestReady: ReturnType<typeof vi.fn>;

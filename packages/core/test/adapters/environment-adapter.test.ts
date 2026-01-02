@@ -4,9 +4,9 @@
  * Tests environment detection and bootstrap strategies for various languages.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdir, writeFile, rm, readFile } from 'fs/promises';
-import { existsSync, symlinkSync, mkdirSync } from 'fs';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdir, writeFile } from 'fs/promises';
+import { existsSync, symlinkSync } from 'fs';
 import { join } from 'path';
 import { 
   createTempDir, 
