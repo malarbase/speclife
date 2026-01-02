@@ -50,6 +50,20 @@ export interface GitAdapter {
   
   /** Get the main worktree path (original repo location) */
   getMainWorktreePath(): Promise<string>;
+  
+  // Tag operations (for releases)
+  
+  /** Get the latest tag (by version order) */
+  getLatestTag(): Promise<string | null>;
+  
+  /** Get commits since a specific tag or commit */
+  getCommitsSince(ref: string): Promise<Array<{ sha: string; message: string }>>;
+  
+  /** Create an annotated tag */
+  createTag(name: string, message: string): Promise<void>;
+  
+  /** Check if a tag exists */
+  tagExists(name: string): Promise<boolean>;
 }
 
 /**
@@ -167,6 +181,59 @@ export function createGitAdapter(repoPath: string): GitAdapter {
       // Fallback to revparse for repos without worktrees
       const toplevel = await git.revparse(['--show-toplevel']);
       return toplevel.trim();
+    },
+    
+    // Tag operations (for releases)
+    
+    async getLatestTag(): Promise<string | null> {
+      try {
+        // Get tags sorted by version (semver)
+        const result = await git.raw(['tag', '-l', 'v*', '--sort=-v:refname']);
+        const tags = result.trim().split('\n').filter(Boolean);
+        return tags.length > 0 ? tags[0] : null;
+      } catch {
+        return null;
+      }
+    },
+    
+    async getCommitsSince(ref: string): Promise<Array<{ sha: string; message: string }>> {
+      try {
+        // Get commits from ref to HEAD
+        const result = await git.raw([
+          'log',
+          `${ref}..HEAD`,
+          '--pretty=format:%H|%s',
+        ]);
+        
+        if (!result.trim()) {
+          return [];
+        }
+        
+        return result.trim().split('\n').map(line => {
+          const [sha, ...messageParts] = line.split('|');
+          return { sha, message: messageParts.join('|') };
+        });
+      } catch {
+        // If ref doesn't exist, get all commits
+        const result = await git.raw(['log', '--pretty=format:%H|%s']);
+        return result.trim().split('\n').map(line => {
+          const [sha, ...messageParts] = line.split('|');
+          return { sha, message: messageParts.join('|') };
+        });
+      }
+    },
+    
+    async createTag(name: string, message: string): Promise<void> {
+      await git.tag(['-a', name, '-m', message]);
+    },
+    
+    async tagExists(name: string): Promise<boolean> {
+      try {
+        await git.raw(['rev-parse', name]);
+        return true;
+      } catch {
+        return false;
+      }
     },
   };
 }

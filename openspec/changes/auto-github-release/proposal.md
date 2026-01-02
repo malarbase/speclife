@@ -1,29 +1,19 @@
 ## Why
 
-Currently, `speclife_merge` attempts to bump versions and create releases by pushing directly to main. This approach:
+Currently, after merging PRs there's no automated release pipeline. We need:
+1. A CI pipeline to publish to npm when releases are created
+2. Clean separation between merge workflow (developer) and release pipeline (CI)
 
-1. **Violates best practices** — Direct pushes to main bypass PR review and branch protection
-2. **Fails with protected branches** — Most teams have branch protection enabled
-3. **Mixes concerns** — SpecLife is a developer workflow tool, not a release pipeline
-
-The industry standard is to use **GitHub Actions** for automated releases (semantic-release, release-please).
+**Note:** Version bumping and release PR creation is handled by `speclife_release` (separate change). This change only sets up the publish-on-release pipeline.
 
 ## What Changes
 
-### New Design: Separation of Concerns
-
-| SpecLife (Developer Workflow) | GitHub Action (Release Pipeline) |
-|------------------------------|----------------------------------|
-| Merge PR | Detect merge to main |
-| Analyze version bump (display only) | Bump version in package.json |
-| Clean up worktree/branch | Commit version bump |
-| Archive change | Create git tag |
-| | Create GitHub release |
-| | Publish to npm |
-
 ### 1. Simplify Merge Workflow
 
-Remove direct version bump and release creation. Keep AI analysis for user information only:
+Remove ALL version/release logic from `speclife_merge`. It now only:
+- Merges the PR
+- Syncs main branch locally
+- Cleans up worktree/branch
 
 ```typescript
 export interface MergeOptions {
@@ -31,8 +21,7 @@ export interface MergeOptions {
   method?: 'squash' | 'merge' | 'rebase';
   deleteBranch?: boolean;
   removeWorktree?: boolean;
-  // versionBump removed - handled by CI
-  // createRelease removed - handled by CI
+  // No version/release options - handled by speclife_release
 }
 
 export interface MergeResult {
@@ -41,100 +30,81 @@ export interface MergeResult {
   branchDeleted: boolean;
   worktreeRemoved: boolean;
   worktreePath?: string;
-  // versionAnalysis removed
-  // newVersion removed  
-  // release removed
 }
 ```
 
-### 2. Add GitHub Action for Releases
+### 2. Add Publish Workflow
 
-Create `.github/workflows/release.yml` using release-please:
+Create `.github/workflows/publish.yml` that runs when a GitHub Release is published:
 
 ```yaml
-name: Release
+name: Publish
 on:
-  push:
-    branches: [main]
-
-permissions:
-  contents: write
-  pull-requests: write
+  release:
+    types: [published]
 
 jobs:
-  release:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          release-type: node
-      
       - uses: actions/checkout@v4
-        if: ${{ steps.release.outputs.release_created }}
-      
       - uses: actions/setup-node@v4
-        if: ${{ steps.release.outputs.release_created }}
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-      
       - run: npm ci && npm run build
-        if: ${{ steps.release.outputs.release_created }}
-      
       - run: npm publish --workspaces --access public
-        if: ${{ steps.release.outputs.release_created }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
-### 3. Update MCP Tool Output
+### Flow
 
 ```
-✓ Merged PR #11: https://github.com/malarbase/speclife/pull/11
-✓ Synced main with latest changes
-✓ Deleted local branch spec/auto-github-release
-✓ Removed worktree at worktrees/auto-github-release
+Developer workflow (speclife):
+  speclife_merge → merge PR, cleanup
 
-Change complete! CI will handle version bump and release automatically.
+Release workflow (speclife_release - separate change):
+  speclife_release → create Release PR with version bump
+
+Publish workflow (GitHub Actions):
+  Release PR merged → GitHub Release created → npm publish
 ```
 
 ## Design Decisions
 
-### Why remove version bump from SpecLife?
-- **Branch protection compatibility** — Can't push directly to protected main
-- **Separation of concerns** — SpecLife manages developer workflow, CI manages releases
-- **Industry standard** — semantic-release, release-please, changesets all use this pattern
+### Why not use release-please?
+- release-please auto-creates Release PRs based on commits
+- This conflicts with `speclife_release` which gives users explicit control
+- We want: user decides WHEN and WHAT version to release
 
-### Why release-please over semantic-release?
-- Creates "Release PR" for visibility before release
-- Works well with squash merges (uses PR titles)
-- Simpler configuration
-- Google-maintained, widely adopted
-
-### Why not keep version analysis in SpecLife?
-- It was only useful for the direct-push approach
-- Release-please analyzes commits automatically using Conventional Commits
-- Reduces complexity and AI API calls
+### Why separate publish from release?
+- `speclife_release` creates the Release PR and tags
+- GitHub Actions handles npm publish (needs secrets, CI-appropriate)
+- Clean separation: speclife = workflow, CI = publishing
 
 ## Impact
 
 - **Remove from core:**
-  - `bumpVersion()` function
-  - `generateReleaseNotes()` function
-  - `analyzeVersionBump()` function
-  - `createRelease()` from GitHubAdapter
-  - `createTag()` from GitHubAdapter
+  - `bumpVersion()`, `analyzeVersionBump()`, `generateReleaseNotes()`
+  - `createRelease()`, `createTag()` from GitHubAdapter
   - Version-related types and options
 
 - **Add:**
-  - `.github/workflows/release.yml` — release-please workflow
+  - `.github/workflows/publish.yml` — publish on release
 
 - **Keep:**
   - Basic merge workflow (merge PR, sync main, cleanup)
 
+## Compatibility
+
+This change is designed to work WITH `add-release-tool`:
+- `speclife_merge` only merges
+- `speclife_release` (future) creates Release PRs
+- `publish.yml` handles npm publish
+
 ## Out of Scope
 
-- Migrating existing version bump commits
-- Per-package independent versioning
-- Custom release notes templates
+- Version bumping (handled by `speclife_release`)
+- Release PR creation (handled by `speclife_release`)
+- Changelog generation (handled by `speclife_release`)

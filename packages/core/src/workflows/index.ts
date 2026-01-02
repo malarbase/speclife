@@ -7,4 +7,11 @@ export { statusWorkflow, type StatusOptions, type StatusResult } from './status.
 export { submitWorkflow, type SubmitOptions, type SubmitResult } from './submit.js';
 export { mergeWorkflow, type MergeOptions, type MergeResult } from './merge.js';
 export { implementWorkflow, type ImplementDependencies } from './implement.js';
+export {
+  releaseWorkflow,
+  parseConventionalCommit,
+  suggestVersionBump,
+  bumpVersion,
+  generateChangelog,
+} from './release.js';
 

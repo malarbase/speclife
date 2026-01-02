@@ -38,6 +38,8 @@ export interface MergeResult {
   worktreeRemoved: boolean;
   /** Path to worktree that was removed (if any) */
   worktreePath?: string;
+  /** Path to the main repo (for release workflow to use) */
+  repoPath?: string;
 }
 
 interface MergeDependencies {
@@ -155,11 +157,15 @@ export async function mergeWorkflow(
 
   onProgress?.({ type: 'step_completed', message: 'Merge complete' });
 
+  // Get main repo path for potential follow-up release
+  const repoPath = await git.getMainWorktreePath();
+
   return {
     pullRequest: mergedPr,
     mainSynced,
     branchDeleted,
     worktreeRemoved,
     worktreePath: worktreeRemoved ? worktreePath : undefined,
+    repoPath,
   };
 }
