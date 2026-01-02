@@ -29,3 +29,4 @@ For consistency, users should use `/openspec-apply` directly. This proxy exists 
 - `/openspec-proposal` - Create a new proposal
 - `/speclife start` - Create worktree and optionally scaffold proposal
 
+

@@ -72,3 +72,4 @@ Next: The proposal has been created. Review and edit it, then run `/openspec-app
 - The worktree is created from the base branch (usually `main`)
 - All work should happen in the worktree directory
 
+
