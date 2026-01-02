@@ -61,9 +61,25 @@ When implementing changes, always read:
 - `<file>` - <description>
 ```
 
+## Branch Support
+
+SpecLife commands work with both **spec branches** (from `/speclife start`) and **ad-hoc branches**:
+
+| Branch Type | Detection | Behavior |
+|-------------|-----------|----------|
+| **Spec branch** | `spec/*` prefix + worktree | Full workflow with OpenSpec validation |
+| **Ad-hoc branch** | Any non-main branch | Simplified workflow (skip OpenSpec steps) |
+
+This enables completing the change lifecycle for:
+- Branches created manually
+- PRs from external contributors  
+- PRs from other team members
+- Automated PRs (Dependabot, Renovate)
+
 ## Notes
 
 - This file is managed by speclife and populated by `/speclife setup`
 - Edit manually to customize release policy or add project-specific context
 - Commands are used by `/speclife ship` and `/speclife land` for validation
 - The format is designed to be both human-readable and AI-parseable
+- `/speclife sync` keeps branches up-to-date with main

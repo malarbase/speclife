@@ -1,84 +1,136 @@
+---
+name: /speclife/ship
+id: speclife-ship
+category: SpecLife
+description: Commit changes, push to remote, and create a PR for review.
+---
 # /speclife ship
 
-Archive the spec, commit changes, push to remote, and create a PR for review.
+Create a PR from your current branch. Works with spec branches and ad-hoc branches.
 
-## Usage
+## TL;DR
 
 ```
-/speclife ship
+/speclife ship           # Ship current branch
+/speclife ship --draft   # Create as draft PR
 ```
 
-## Preconditions
+**Quick flow:**
+1. Detect branch type (spec vs ad-hoc)
+2. For spec branches: validate + archive spec
+3. Stage, commit, push
+4. Create/update PR
 
-- On a `spec/*` branch (in a worktree)
-- Implementation complete (may have existing commits from `/openspec-apply`)
+## Mode Detection
 
-## Steps
+```bash
+BRANCH=$(git branch --show-current)
+```
 
-1. **Validate spec**: Run `openspec validate <change-id>`
-   - Ensure proposal.md exists and is well-formed
-   - Check tasks.md has tasks defined
-   - If validation fails, report errors and stop
+| Branch | Type | Behavior |
+|--------|------|----------|
+| `spec/*` + worktree exists | **Spec** | Full workflow with OpenSpec |
+| Any non-main | **Ad-hoc** | Simplified (skip spec steps) |
+| `main` | **Error** | Cannot ship from main |
 
-2. **Archive spec**: Invoke `/openspec-archive <change-id>`
-   - Moves `openspec/changes/<change-id>/` to `openspec/changes/archive/<change-id>/`
-   - Updates any references in project.md
-   - This ensures the archive is included in the PR
+## Core Steps
 
-3. **Read proposal**: Extract information for commit message
-   - Get the "What" or title from proposal.md
-   - Determine commit type (feat, fix, docs, refactor, etc.)
+### 1. Spec Branch Only
+If spec branch detected:
+- Run `openspec validate <change-id>`
+- Archive: `/openspec-archive <change-id>`
+- Read proposal.md for commit message
 
-4. **Stage changes**: `git add -A`
-   - Include all changes (code, archived spec, any updated docs)
+### 2. Ad-hoc Branch Only
+- Infer commit type from branch name (`fix/*` → `fix:`, `feat/*` → `feat:`)
+- Ask user for commit message if needed
 
-5. **Commit**: `git commit -m "<type>: <description>"`
-   - Use conventional commits format
-   - Note: User may have prior commits from implementation phase
+### 3. All Branches
+```bash
+git add -A
+git commit -m "<type>: <description>"  # if uncommitted changes
+git push -u origin <branch>
+```
 
-6. **Push**: `git push -u origin <branch>`
-   - Push to remote, set upstream tracking
+### 4. Create PR
+```bash
+# Check if PR exists
+gh pr view --json url 2>/dev/null
 
-7. **Create PR**: Use one of these methods (in order of preference):
-   - **@github MCP**: If available, use to create PR
-   - **gh CLI**: `gh pr create --fill --base main`
-   - **Manual**: Provide GitHub URL for manual PR creation
+# If not, create
+gh pr create --fill --base main
+# Or: gh pr create --fill --base main --draft
+```
 
-8. **Report**: Show PR URL and next steps
+### 5. Report
+```
+✓ Committed: "feat: description"
+✓ Pushed to origin/<branch>
+✓ Created PR #42: <url>
 
-## Commit Message Guidelines
+Next: After approval, run /speclife land
+```
 
-Use conventional commits based on the change type:
+---
 
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation only
-- `refactor:` - Code refactoring
-- `test:` - Adding tests
-- `chore:` - Maintenance tasks
+<!-- REFERENCE SECTIONS - Read only when needed -->
 
-Example: `feat: add OAuth login support`
+## Appendix: Commit Type Inference
 
-## Example
+| Branch Pattern | Commit Type |
+|----------------|-------------|
+| `fix/*`, `bugfix/*`, `hotfix/*` | `fix:` |
+| `feat/*`, `feature/*` | `feat:` |
+| `docs/*` | `docs:` |
+| `refactor/*` | `refactor:` |
+| `chore/*` | `chore:` |
+| Other | Ask user |
 
+## Appendix: Error Handling
+
+**Cannot ship from main:**
+```
+❌ Cannot ship from main. Create a branch first.
+```
+
+**No changes:**
+```
+❌ No changes to ship. Working directory clean.
+```
+
+**Spec validation failed:**
+```
+❌ Spec validation failed:
+   - proposal.md: Missing "What" section
+Fix issues and retry, or use --skip-validation
+```
+
+**PR already exists:**
+```
+ℹ️ PR #43 already exists. Pushing updates...
+✓ Updated PR #43
+```
+
+## Appendix: Examples
+
+**Spec branch:**
 ```
 User: /speclife ship
 
 Agent:
-✓ Validated spec for add-oauth-login
-✓ Archived spec to openspec/changes/archive/add-oauth-login/
-✓ Staged 15 files
-✓ Committed: "feat: add OAuth login support"
-✓ Pushed to origin/spec/add-oauth-login
-✓ Created PR #42: https://github.com/user/repo/pull/42
-
-Next: PR is ready for review. After approval, run `/speclife land` to merge.
+ℹ️ Spec branch: spec/add-oauth-login
+✓ Validated spec
+✓ Archived to openspec/changes/archive/
+✓ Committed: "feat: add OAuth login"
+✓ Created PR #42
 ```
 
-## Notes
+**Ad-hoc branch:**
+```
+User: /speclife ship
 
-- Archive is done here (not in `/speclife land`) so it's included in the PR
-- If PR already exists, push updates to it instead of creating new one
-- The `--fill` flag auto-populates PR title/body from commits
-
-
+Agent:
+ℹ️ Ad-hoc branch: fix/login-bug
+✓ Committed: "fix: resolve login redirect"
+✓ Created PR #43
+```

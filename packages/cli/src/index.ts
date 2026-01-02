@@ -118,7 +118,7 @@ git:
       }
       
       // Copy slash command templates (from templates embedded in package)
-      const slashCommands = ['setup', 'start', 'implement', 'ship', 'land', 'release'];
+      const slashCommands = ['setup', 'start', 'implement', 'ship', 'land', 'release', 'sync'];
       const templatesDir = join(__dirname, '..', 'templates', 'commands');
       
       for (const cmd of slashCommands) {
