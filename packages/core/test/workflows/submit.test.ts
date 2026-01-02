@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { submitWorkflow, type SubmitOptions } from '../../src/workflows/submit.js';
+import { submitWorkflow } from '../../src/workflows/submit.js';
 import { 
   createMockGitAdapter, 
   createMockGitHubAdapter,
@@ -14,27 +14,30 @@ import {
 } from '../helpers.js';
 import type { SpecLifeConfig } from '../../src/config.js';
 import { SpecLifeError } from '../../src/types.js';
+import type { OpenSpecAdapter } from '../../src/adapters/openspec-adapter.js';
 
 // Mock openspec adapter
 function createMockOpenSpecAdapter(overrides: Partial<MockOpenSpecAdapter> = {}): MockOpenSpecAdapter {
   return {
-    changeExists: vi.fn().mockResolvedValue(true),
+    scaffoldChange: vi.fn().mockResolvedValue({ proposalPath: '', tasksPath: '' }),
     readChange: vi.fn().mockResolvedValue({
       proposal: {
         why: 'Add a new feature for users',
         whatChanges: ['Update API', 'Add tests'],
       },
     }),
+    readProposal: vi.fn().mockResolvedValue(''),
+    listChanges: vi.fn().mockResolvedValue([]),
+    changeExists: vi.fn().mockResolvedValue(true),
     archiveChange: vi.fn().mockResolvedValue(undefined),
+    updateTasks: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
 
-interface MockOpenSpecAdapter {
-  changeExists: ReturnType<typeof vi.fn>;
-  readChange: ReturnType<typeof vi.fn>;
-  archiveChange: ReturnType<typeof vi.fn>;
-}
+type MockOpenSpecAdapter = {
+  [K in keyof OpenSpecAdapter]: ReturnType<typeof vi.fn>;
+};
 
 describe('submitWorkflow', () => {
   let mockGit: MockGitAdapter;
