@@ -15,7 +15,6 @@ import {
   suggestVersionBump,
   parseConventionalCommit,
   isAutoReleaseAllowed,
-  type VersionBumpType,
   type CommitInfo,
 } from "@speclife/core";
 import { z } from "zod";
