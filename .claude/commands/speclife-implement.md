@@ -1,0 +1,1 @@
+/Users/malar/Personal/Code/speclife/openspec/commands/speclife/implement.md
