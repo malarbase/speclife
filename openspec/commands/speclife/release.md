@@ -2,6 +2,15 @@
 
 Create a release with version bump. Used for manual releases (typically major versions).
 
+## ⚡ Execution
+
+**When this command is invoked, IMMEDIATELY execute the workflow below.**
+
+- Check that we're on the main branch
+- Analyze commits to determine version bump (or use explicit flag)
+- Update version files and changelog
+- Commit and push to trigger release workflow
+
 ## Usage
 
 ```

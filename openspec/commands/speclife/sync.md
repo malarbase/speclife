@@ -8,6 +8,15 @@ description: Update current branch with latest changes from main.
 
 Update your branch with latest main. Handles conflicts with guidance.
 
+## ⚡ Execution
+
+**When this command is invoked, IMMEDIATELY execute the workflow below.**
+
+- Check prerequisites first (not on main, clean working directory)
+- Default to rebase unless `--merge` is specified
+- If conflicts occur, guide the user through resolution
+- Push after successful sync
+
 ## TL;DR
 
 ```

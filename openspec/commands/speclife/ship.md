@@ -8,6 +8,16 @@ description: Commit changes, push to remote, and create a PR for review.
 
 Create a PR from your current branch. Works with spec branches and ad-hoc branches.
 
+## ⚡ Execution
+
+**When this command is invoked, IMMEDIATELY execute the workflow below.**
+
+- Do NOT skip steps or ask for confirmation before starting
+- Detect branch type first, then follow the appropriate flow
+- If there are uncommitted changes, proceed to stage and commit them
+- Create or update PR as the final step
+- **STOP after PR created—do NOT auto-invoke `/speclife land`**
+
 ## TL;DR
 
 ```
@@ -29,9 +39,11 @@ BRANCH=$(git branch --show-current)
 
 | Branch | Type | Behavior |
 |--------|------|----------|
-| `spec/*` + worktree exists | **Spec** | Full workflow with OpenSpec |
-| Any non-main | **Ad-hoc** | Simplified (skip spec steps) |
+| `spec/*` | **Spec** | Full workflow with OpenSpec (validate, archive) |
+| Any other non-main | **Ad-hoc** | Simplified (skip spec steps) |
 | `main` | **Error** | Cannot ship from main |
+
+Note: Spec mode is determined by branch name prefix (`spec/`), not worktree existence. Works identically whether you're in a worktree or the main repo.
 
 ## Core Steps
 
@@ -62,7 +74,7 @@ gh pr create --fill --base main
 # Or: gh pr create --fill --base main --draft
 ```
 
-### 5. Report
+### 5. Report and STOP
 ```
 ✓ Committed: "feat: description"
 ✓ Pushed to origin/<branch>
@@ -70,6 +82,10 @@ gh pr create --fill --base main
 
 Next: After approval, run /speclife land
 ```
+
+**⛔ STOP HERE.** Do NOT proceed to merge. Wait for:
+1. PR review and approval
+2. User to invoke `/speclife land`
 
 ---
 
