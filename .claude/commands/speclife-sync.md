@@ -1,1 +1,0 @@
-speclife/sync.md
