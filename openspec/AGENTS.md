@@ -147,6 +147,81 @@ describe('initWorkflow', () => {
 - Block on long operations without progress updates
 - Swallow errors silently (always propagate with context)
 
+## 🚨 CRITICAL: Working with Worktrees
+
+**The #1 rule when working on spec branches in worktrees:**
+
+### All File Edits Must Use Worktree Paths
+
+When implementing a change in a worktree, **every file operation must target the worktree directory**, not the main repository.
+
+✅ **CORRECT paths** (when working in worktree `add-feature`):
+```
+/Users/.../speclife/worktrees/add-feature/openspec/commands/...
+/Users/.../speclife/worktrees/add-feature/packages/core/...
+/Users/.../speclife/worktrees/add-feature/README.md
+```
+
+❌ **WRONG paths** (main repo - do NOT use these):
+```
+/Users/.../speclife/openspec/commands/...         ← Main repo!
+/Users/.../speclife/packages/core/...             ← Main repo!
+/Users/.../speclife/README.md                     ← Main repo!
+```
+
+### Detection and Validation
+
+**BEFORE making ANY file edits:**
+
+1. ✓ Verify current directory contains `worktrees/<change-id>`
+2. ✓ Check `git branch --show-current` matches your change
+3. ✓ Confirm first file operation uses worktree prefix
+4. ✓ If path looks wrong: STOP and ask user to confirm location
+
+### If You Realize You're in the Wrong Location
+
+**STOP IMMEDIATELY** and notify the user:
+
+```
+❌ Error: I was about to edit files in the main repo, but there's a worktree.
+   
+   All changes should happen in: worktrees/<change-id>/
+   
+   Should I continue in main repo, or do you want me to work from the worktree?
+```
+
+### Verification Logic
+
+Each file operation should pass this mental check:
+
+```typescript
+const currentPath = "/Users/.../speclife/...";
+const isInWorktree = currentPath.includes(`worktrees/${changeId}/`);
+const branch = "spec/add-feature";
+const worktreeExists = true; // check if worktree dir exists
+
+const shouldBeInWorktree = branch.startsWith('spec/') && worktreeExists;
+
+if (shouldBeInWorktree && !isInWorktree) {
+  ERROR: "Wrong location! Must use worktree path."
+}
+```
+
+### Why This Matters
+
+- **Worktrees enable parallel work** - changes must be isolated from main
+- **Git state integrity** - main branch should stay clean during development
+- **Workflow correctness** - changes belong to their feature branch, not main
+- **User expectations** - if they created a worktree, they expect you to use it
+- **Prevents confusion** - avoids the "where did my changes go?" problem
+
+### Branch-Only Mode (No Worktree)
+
+If a spec branch exists but **no worktree** was created:
+- ✅ Work directly in main repo is correct
+- The user chose branch-only mode (`/speclife start "..." in a branch`)
+- Standard single-branch workflow applies
+
 ## Code Style Reminders
 
 ```typescript
