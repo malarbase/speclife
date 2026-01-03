@@ -1,1 +1,1 @@
-/Users/malar/Personal/Code/speclife/openspec/commands/speclife/start.md
+speclife/start.md

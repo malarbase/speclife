@@ -1,1 +1,1 @@
-/Users/malar/Personal/Code/speclife/openspec/commands/speclife/ship.md
+speclife/ship.md

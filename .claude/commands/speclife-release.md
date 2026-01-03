@@ -1,1 +1,1 @@
-/Users/malar/Personal/Code/speclife/openspec/commands/speclife/release.md
+speclife/release.md

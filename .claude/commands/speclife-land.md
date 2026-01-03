@@ -1,1 +1,1 @@
-/Users/malar/Personal/Code/speclife/openspec/commands/speclife/land.md
+speclife/land.md

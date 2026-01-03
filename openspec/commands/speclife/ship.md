@@ -27,9 +27,9 @@ Create a PR from your current branch. Works with spec branches and ad-hoc branch
 
 **Quick flow:**
 1. Detect branch type (spec vs ad-hoc)
-2. For spec branches: validate + archive spec
-3. Stage, commit, push
-4. Create/update PR
+2. For spec branches: validate → commit changes → archive → commit archive
+3. For ad-hoc branches: stage, commit
+4. Push, create/update PR
 
 ## Mode Detection
 
@@ -50,8 +50,19 @@ Note: Spec mode is determined by branch name prefix (`spec/`), not worktree exis
 ### 1. Spec Branch Only
 If spec branch detected:
 - Run `openspec validate <change-id>`
-- Run `openspec archive <change-id>`
 - Read proposal.md for commit message
+- Commit the implementation changes:
+  ```bash
+  git add -A
+  git commit -m "<type>: <description>"
+  ```
+- Run `/openspec-archive` (may require updating project.md)
+- Commit the archive changes:
+  ```bash
+  git add -A
+  git commit -m "chore: archive <change-id> spec"
+  ```
+- Skip to step 3 (push only, no additional commit needed)
 
 ### 2. Ad-hoc Branch Only
 - Infer commit type from branch name (`fix/*` → `fix:`, `feat/*` → `feat:`)
@@ -59,8 +70,11 @@ If spec branch detected:
 
 ### 3. All Branches
 ```bash
+# For ad-hoc branches only (spec branches already committed above):
 git add -A
 git commit -m "<type>: <description>"  # if uncommitted changes
+
+# All branches:
 git push -u origin <branch>
 ```
 
@@ -136,8 +150,10 @@ User: /speclife ship
 Agent:
 ℹ️ Spec branch: spec/add-oauth-login
 ✓ Validated spec
-✓ Archived to openspec/changes/archive/
 ✓ Committed: "feat: add OAuth login"
+✓ Archived to openspec/changes/archive/
+✓ Committed: "chore: archive add-oauth-login spec"
+✓ Pushed to origin/spec/add-oauth-login
 ✓ Created PR #42
 ```
 
