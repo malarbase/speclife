@@ -92,12 +92,23 @@ Next: Review the proposal, then run `/openspec-apply` to implement.
 ✓ Created branch spec/add-oauth-login
 ✓ Scaffolded proposal at openspec/changes/add-oauth-login/
 
-Next: cd worktrees/add-oauth-login/ then run `/openspec-apply`.
+⚠️  IMPORTANT: You must work from the worktree directory!
+
+Next steps:
+1. Switch to worktree: cd worktrees/add-oauth-login/
+2. Invoke /openspec-apply from there
+
+🚨 CRITICAL: All file edits MUST happen in:
+   worktrees/add-oauth-login/openspec/...
+   worktrees/add-oauth-login/packages/...
+   
+   NOT in the main repo paths!
 ```
 
 **⛔ STOP HERE.** Do NOT proceed to implementation. Wait for user to:
 1. Review the proposal
-2. Invoke `/openspec-apply` or `/speclife implement`
+2. Switch to worktree directory
+3. Invoke `/openspec-apply` or `/speclife implement` from there
 
 ## Examples
 
