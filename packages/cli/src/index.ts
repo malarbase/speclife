@@ -8,7 +8,7 @@
  */
 
 import { Command } from 'commander';
-import { readFile, writeFile, mkdir, access, symlink, unlink } from 'fs/promises';
+import { readFile, writeFile, mkdir, access, symlink, unlink, readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { 
@@ -118,8 +118,11 @@ git:
       }
       
       // Copy slash command templates (from templates embedded in package)
-      const slashCommands = ['setup', 'start', 'implement', 'ship', 'land', 'release', 'sync', 'convert'];
       const templatesDir = join(__dirname, '..', 'templates', 'commands');
+      const templateFiles = await readdir(templatesDir);
+      const slashCommands = templateFiles
+        .filter(f => f.endsWith('.md'))
+        .map(f => f.replace('.md', ''));
       
       let copiedCount = 0;
       let skippedCount = 0;
@@ -300,16 +303,24 @@ async function configureEditorSymlinks(cwd: string, specDir: string, force: bool
   ];
   
   const sourceDir = join(cwd, specDir, 'commands', 'speclife');
-  const slashCommands = ['setup', 'start', 'implement', 'ship', 'land', 'release', 'sync', 'convert'];
+  
+  // Dynamically discover commands from source directory
+  let slashCommands: string[] = [];
+  try {
+    const files = await readdir(sourceDir);
+    slashCommands = files
+      .filter(f => f.endsWith('.md'))
+      .map(f => f.replace('.md', ''));
+  } catch {
+    // Source directory doesn't exist yet, skip symlinks
+    return;
+  }
   
   for (const editor of editors) {
     const editorCommandsDir = join(cwd, editor.dir, 'commands', 'speclife');
     const editorCommandsBase = join(cwd, editor.dir, 'commands');
     
     try {
-      // Check if source commands exist
-      await access(sourceDir);
-      
       // Create editor commands directory
       await mkdir(editorCommandsBase, { recursive: true });
       

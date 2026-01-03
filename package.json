@@ -1,6 +1,6 @@
 {
   "name": "speclife",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Bring specifications to life - MCP server for automated spec-driven development",
   "private": true,
   "type": "module",

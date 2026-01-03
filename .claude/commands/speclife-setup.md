@@ -1,1 +1,0 @@
-/Users/malar/Personal/Code/speclife/openspec/commands/speclife/setup.md
