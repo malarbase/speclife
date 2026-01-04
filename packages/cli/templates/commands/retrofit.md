@@ -22,4 +22,5 @@ description: Formalize ad-hoc changes on main into a spec-tracked change for rev
 **Reference**
 - Proposal documents what was done (reality), not aspirations
 - Uncommitted changes move to the new branch automatically
+- PR title: use conventional commit format (`<type>: <meaningful description>`)
 - PR body: if `.github/pull_request_template.md` exists, read it and fill in each section based on the change context

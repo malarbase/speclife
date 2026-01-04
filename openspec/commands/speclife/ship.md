@@ -19,4 +19,5 @@ description: Commit changes, push to remote, and create a PR for review.
 **Reference**
 - Commit type inference: fix/bugfix/hotfix → `fix:`, feat/feature → `feat:`, docs → `docs:`, refactor → `refactor:`, chore → `chore:`
 - If PR exists, push updates it automatically
+- PR title: use conventional commit format (`<type>: <meaningful description>`)
 - PR body: if `.github/pull_request_template.md` exists, read it and fill in each section based on the change context
