@@ -1,6 +1,6 @@
 {
   "name": "@speclife/mcp-server",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "MCP server for SpecLife - AI assistant interface",
   "repository": {
     "type": "git",

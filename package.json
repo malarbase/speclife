@@ -1,6 +1,6 @@
 {
   "name": "speclife",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Bring specifications to life - MCP server for automated spec-driven development",
   "private": true,
   "type": "module",
@@ -38,7 +38,7 @@
     "cursor"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/malarbase/speclife.git"

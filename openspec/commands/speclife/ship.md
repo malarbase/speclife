@@ -8,6 +8,7 @@ description: Commit changes, push to remote, and create a PR for review.
 - Execute immediately—do not ask for confirmation
 - Detect branch type: `spec/*` = full OpenSpec workflow, other non-main = ad-hoc, `main` = error
 - STOP after PR created—do NOT auto-invoke `/speclife land`
+- Do NOT manually replicate `openspec` commands—run them and report errors if they fail
 
 **Steps**
 1. For spec branches: run `openspec validate <id>`, commit changes, run `openspec archive <id> --yes`, commit archive.
