@@ -127,24 +127,4 @@ The core module SHALL provide progress bar rendering utilities.
 - **WHEN** rendering with completed === total
 - **THEN** the system shows full bar `[██████████]`
 
-## MODIFIED Requirements
-
-### Requirement: Configuration Loading
-The core module SHALL support both project-local and global configuration with precedence.
-
-#### Scenario: Load from .specliferc.yaml
-- **WHEN** loading configuration
-- **THEN** the system searches for `.specliferc.yaml` in current directory and parents
-
-#### Scenario: Environment variable overrides
-- **WHEN** environment variables are set
-- **THEN** they override config file values
-
-#### Scenario: Global config fallback
-- **WHEN** no project config exists for a setting
-- **THEN** the system falls back to global user config
-
-#### Scenario: Config precedence
-- **WHEN** multiple config sources exist
-- **THEN** precedence is: env vars > project config > global config > defaults
 
