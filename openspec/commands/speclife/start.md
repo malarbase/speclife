@@ -14,7 +14,7 @@ description: Create a new branch for a change, optionally in a worktree for para
 1. If resume intent detected, verify `openspec/changes/<id>/` exists; error with available proposals if not found.
 2. For new proposals: derive kebab-case change-id from description (prefix: add-, fix-, update-, remove-, refactor-).
 3. Create workspace: branch-only → `git checkout -b spec/<id>`, worktree → `speclife worktree create <id>`.
-4. For new proposals only: invoke `/openspec-proposal` to scaffold `proposal.md` and `tasks.md`.
+4. For new proposals only: scaffold `proposal.md` and `tasks.md` under `openspec/changes/<id>/` (follow `/openspec-proposal` for format), then run `openspec validate <id> --strict`.
 5. Report: change-id, branch/worktree created, path to work directory. If worktree, emphasize: "All edits must happen in worktrees/<id>/".
 
 **Reference**

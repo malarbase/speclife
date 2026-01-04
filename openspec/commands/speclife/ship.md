@@ -10,7 +10,7 @@ description: Commit changes, push to remote, and create a PR for review.
 - STOP after PR created—do NOT auto-invoke `/speclife land`
 
 **Steps**
-1. For spec branches: run `openspec validate <id>`, commit changes, invoke `/openspec-archive`, commit archive.
+1. For spec branches: run `openspec validate <id>`, commit changes, run `openspec archive <id> --yes`, commit archive.
 2. For ad-hoc branches: infer commit type from branch name (`fix/*` → `fix:`, `feat/*` → `feat:`), ask if ambiguous.
 3. Push branch: `git push -u origin <branch>`.
 4. Create/update PR: `gh pr create --fill --base main` (or `--draft` if requested).
