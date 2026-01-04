@@ -71,13 +71,41 @@ AI: → Merged PR #42 (squash)
 ## CLI Commands
 
 ```bash
-speclife init                        # Configure project for AI editors
+# Project Setup
+speclife init                        # Interactive setup with editor selection
+speclife init --tools cursor         # Non-interactive with specific editors
+speclife init -y                     # Accept all defaults
+
+# Dashboard & Status
+speclife view                        # Interactive dashboard with progress bars
+speclife status [change-id]          # Show change status
+speclife list                        # List all changes
+
+# Worktree Management
 speclife worktree create <change-id> # Create worktree + branch
 speclife worktree rm <change-id>     # Remove worktree + branch
 speclife worktree list               # List active worktrees
-speclife status [change-id]          # Show change status
+
+# Configuration
+speclife config path                 # Show global config path (~/.config/speclife/)
+speclife config list                 # List all config values
+speclife config get <key>            # Get a config value
+speclife config set <key> <value>    # Set a config value
+
+# Validation & Updates
+speclife validate [change-id]        # Pre-flight validation for CI
+speclife update                      # Refresh slash command templates
+
+# Shell Completions
+speclife completion bash >> ~/.bashrc    # Add bash completions
+speclife completion zsh >> ~/.zshrc      # Add zsh completions
+speclife completion fish > ~/.config/fish/completions/speclife.fish
+
+# Info
 speclife version                     # Show version
 ```
+
+All commands support `--json` for scripting and `--help` for options.
 
 ## Installation
 
@@ -104,20 +132,38 @@ Run `speclife init` in your project root:
 ```bash
 $ speclife init
 
-Detecting project settings...
-✓ Found openspec/ directory
-✓ Detected git base branch: main
+   ____                   __    _ ____     
+  / __/__  ___  ____/ /  (_) __/__ 
+  _\ \/ _ \/ -_) __/ /__/ / _/ -_)
+ /___/ .__/\__/\__/____/_/_/ \__/ 
+    /_/                           v0.3.0
 
-Configuring editors:
-  ✓ Cursor      → .cursor/commands/speclife/
-  ✓ Claude Code → .claude/commands/speclife/
+✓ Project settings detected
+  • Spec directory: openspec
+  • Base branch: main
 
-✓ Created .specliferc.yaml (minimal)
-✓ Created openspec/commands/speclife/*.md (tracked)
-✓ Created openspec/speclife.md (template)
-✓ Created .github/workflows/speclife-release.yml
+✓ Editor detection complete
 
-⚠️  Run /speclife setup to auto-detect project commands
+? Select editors to configure: (Use arrow keys)
+  ◉ Cursor (detected)
+  ◉ Claude Code (detected)
+  ○ VS Code
+  ○ Windsurf
+
+The following files will be created/modified:
+  • .specliferc.yaml
+  • openspec/commands/speclife/
+  • openspec/speclife.md
+  • .github/workflows/speclife-release.yml
+
+✅ SpecLife configured!
+
+Next steps:
+  1. Run /speclife setup to auto-detect project commands
+  2. Use /speclife start "your change" to begin a new change
+
+Tip: Enable tab completion with:
+  speclife completion zsh >> ~/.zshrc
 ```
 
 Then run `/speclife setup` in your AI editor to auto-detect project commands.

@@ -45,7 +45,7 @@ Slash commands are markdown files that guide AI assistants through workflows:
 ```
 openspec/commands/speclife/
 ├── setup.md     # AI-guided config discovery
-├── start.md     # Create worktree + branch
+├── start.md     # Create branch (or worktree for parallel work)
 ├── ship.md      # Archive, commit, push, create PR
 ├── land.md      # Merge, cleanup, auto-release
 └── release.md   # Manual release (major versions)
@@ -58,11 +58,40 @@ These are symlinked to editor-specific directories:
 ### CLI Commands
 
 ```bash
-speclife init                        # Project setup
+# Project setup
+speclife init                        # Interactive project setup with editor selection
+speclife init --tools cursor,claude-code  # Non-interactive setup with specific editors
+speclife init -y                     # Accept all defaults
+
+# Dashboard & status
+speclife view                        # Interactive dashboard with progress bars
+speclife status [change-id]          # Show change status (--json for scripting)
+speclife list                        # List all changes (--json, --compact, --sort)
+
+# Worktree management
 speclife worktree create <change-id> # Create worktree + branch
 speclife worktree rm <change-id>     # Remove worktree + branch
-speclife worktree list               # List worktrees
-speclife status [change-id]          # Show status
+speclife worktree list               # List worktrees (--json)
+
+# Configuration
+speclife config path                 # Show global config path
+speclife config list                 # List all config values (--json)
+speclife config get <key>            # Get a config value
+speclife config set <key> <value>    # Set a config value
+speclife config unset <key>          # Remove a config value
+speclife config reset                # Reset to defaults
+speclife config edit                 # Open config in editor
+
+# Validation & updates
+speclife validate [change-id]        # Validate spec (--json, --strict for CI)
+speclife update                      # Refresh slash command templates
+
+# Shell completions
+speclife completion bash             # Generate bash completions
+speclife completion zsh              # Generate zsh completions
+speclife completion fish             # Generate fish completions
+
+# Info
 speclife version                     # Show version
 ```
 
@@ -215,12 +244,12 @@ if (shouldBeInWorktree && !isInWorktree) {
 - **User expectations** - if they created a worktree, they expect you to use it
 - **Prevents confusion** - avoids the "where did my changes go?" problem
 
-### Branch-Only Mode (No Worktree)
+### Branch-Only Mode (Default)
 
-If a spec branch exists but **no worktree** was created:
+If a spec branch exists but **no worktree** was created (the default):
 - ✅ Work directly in main repo is correct
-- The user chose branch-only mode (`/speclife start "..." in a branch`)
 - Standard single-branch workflow applies
+- Use `/speclife start "..." in a worktree` for parallel development
 
 ## Code Style Reminders
 
@@ -251,6 +280,11 @@ function init(changeId: string, desc: string, skip: boolean, dry: boolean)
 - `workflows/*.ts` - Business logic operations
 - `types.ts` - Shared TypeScript interfaces
 - `config.ts` - Configuration loading and validation
+- `global-config.ts` - XDG-compliant global configuration
+- `configurators/*.ts` - Editor configuration registry
+- `completions/*.ts` - Shell completion generators
+- `utils/progress.ts` - Progress bar utilities
+- `utils/task-progress.ts` - Task parsing utilities
 
 ### Key Commands
 ```bash

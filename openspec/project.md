@@ -105,7 +105,7 @@ speclife_init          speclife_implement            speclife_submit  speclife_m
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| `speclife_init` | Create worktree (default) + scaffold proposal | `changeId`, `description?`, `noWorktree?` |
+| `speclife_init` | Create branch (default) or worktree + scaffold proposal | `changeId`, `description?`, `useWorktree?` |
 | `speclife_status` | Show current change state | `changeId?` |
 | `speclife_list` | List active changes across worktrees | none |
 | `speclife_implement` | AI implementation with internal test loop | `changeId`, `taskId?`, `dryRun?` |
@@ -121,19 +121,25 @@ speclife_init          speclife_implement            speclife_submit  speclife_m
 │             │     │  │ implement → test → fix loop │   │     │              │     │             │
 └─────────────┘     │  └─────────────────────────────┘   │     └──────────────┘     └─────────────┘
                     └─────────────────────────────────────┘
-  Creates worktree    AI implements code, runs tests,        Commits, pushes,      Merges PR,
-  (default) +         fixes failures until passing           creates PR,           removes worktree
+  Creates branch      AI implements code, runs tests,        Commits, pushes,      Merges PR,
+  (default) +         fixes failures until passing           creates PR,           removes branch/worktree
   scaffolds                                                  archives change
 ```
 
-### Worktrees (Default Behavior)
+### Branch Modes
 
-SpecLife uses git worktrees by default, keeping `main` clean and enabling parallel development:
+SpecLife supports two modes for working on changes:
 
+**Branch-only (Default):** Simple workflow in the current directory
 ```bash
-# Each init creates a new worktree (default behavior)
 speclife_init --changeId add-auth
-speclife_init --changeId fix-performance
+# Creates branch spec/add-auth, stays in current directory
+```
+
+**Worktree mode:** For parallel development across multiple changes
+```bash
+speclife_init --changeId add-auth --worktree
+speclife_init --changeId fix-performance --worktree
 
 # Results in:
 # ./                           ← main worktree (stays on main, always clean)
@@ -141,16 +147,10 @@ speclife_init --changeId fix-performance
 # ./worktrees/fix-performance/ ← worktree for fix-performance
 ```
 
-**Benefits:**
-- Main worktree stays on `main` branch, always clean
-- Multiple changes can be worked on in parallel by different AI agents
-- No branch switching needed
-- Clean separation of concerns
-
-**Opt-out:** Use `--no-worktree` to work in current directory:
-```bash
-speclife_init --changeId quick-fix --no-worktree
-```
+**When to use worktrees:**
+- Working on multiple changes in parallel
+- Want to keep main always clean
+- Different AI agents working simultaneously
 
 ### Configuration File Format
 ```yaml
