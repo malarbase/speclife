@@ -8,6 +8,7 @@ description: Formalize ad-hoc changes on main into a spec-tracked change for rev
 - Execute immediately—must be on `main` with uncommitted changes or unpushed commits
 - Generate spec from actual changes (retrospective), not speculation
 - STOP after PR created—do NOT auto-invoke `/speclife land`
+- Do NOT manually replicate `openspec archive`—run the command and report errors if it fails
 
 **Steps**
 1. Detect changes: `git status --short` and `git log origin/main..HEAD --oneline`; error if no changes.
