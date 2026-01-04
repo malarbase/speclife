@@ -126,8 +126,6 @@ describe('formatStepIndicator', () => {
 });
 
 describe('getSpinnerFrame', () => {
-  const defaultFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  
   it('returns correct frame for index', () => {
     expect(getSpinnerFrame(0)).toBe('⠋');
     expect(getSpinnerFrame(1)).toBe('⠙');

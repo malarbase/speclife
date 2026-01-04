@@ -8,13 +8,10 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import {
   EditorRegistry,
-  EditorConfigurator,
   CursorConfigurator,
   ClaudeCodeConfigurator,
   VSCodeConfigurator,
   WindsurfConfigurator,
-  type ConfigureResult,
-  type ConfigureOptions,
 } from '../../src/configurators/index.js';
 
 describe('EditorRegistry', () => {

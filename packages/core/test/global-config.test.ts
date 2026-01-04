@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm, readFile, mkdir } from 'fs/promises';
+import { mkdtemp, rm, readFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -191,7 +191,7 @@ describe('GlobalConfig', () => {
   
   describe('listGlobalConfig', () => {
     it('returns flat map of all values', async () => {
-      const { listGlobalConfig, getGlobalConfig } = await import('../src/global-config.js');
+      const { listGlobalConfig } = await import('../src/global-config.js');
       
       const entries = await listGlobalConfig();
       
