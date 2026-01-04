@@ -16,9 +16,10 @@ description: Formalize ad-hoc changes on main into a spec-tracked change for rev
 4. Review context: `openspec list --specs`, `cat openspec/project.md`.
 5. Create retrospective spec: `proposal.md` (past tense), `tasks.md` (all `[x]` completed), spec deltas if applicable.
 6. Validate and branch: `openspec validate <id>`, `git checkout -b spec/<id>`.
-7. Commit, archive, push, PR: commit changes, run `openspec archive <id> --yes`, commit archive, push, `gh pr create --fill`.
+7. Commit, archive, push, PR: commit changes, run `openspec archive <id> --yes`, commit archive, push, create PR with `gh pr create --title "<type>: <description>" --body "<body>"`.
 8. Report: change-id, spec created, PR URL. Next: `/speclife land` after approval.
 
 **Reference**
 - Proposal documents what was done (reality), not aspirations
 - Uncommitted changes move to the new branch automatically
+- PR body: if `.github/pull_request_template.md` exists, read it and fill in each section based on the change context
