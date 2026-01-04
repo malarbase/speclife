@@ -1,9 +1,9 @@
 # Core Library Specification
 
-## Overview
+## Purpose
 The core library provides shared business logic, adapters, and workflows used by both the MCP server and CLI.
 
----
+## Requirements
 
 ### Requirement: Configuration Loading
 The core library SHALL load configuration from standard locations.

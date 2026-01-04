@@ -46,3 +46,50 @@ export * from './workflows/index.js';
 // Re-export utilities
 export * from './utils/index.js';
 
+// Re-export global config
+export {
+  getGlobalConfigDir,
+  getGlobalConfigPath,
+  globalConfigExists,
+  getGlobalConfig,
+  saveGlobalConfig,
+  getGlobalConfigValue,
+  setGlobalConfigValue,
+  unsetGlobalConfigValue,
+  resetGlobalConfig,
+  listGlobalConfig,
+  type GlobalConfig,
+} from './global-config.js';
+
+// Re-export editor configurators
+export {
+  EditorConfigurator,
+  EditorRegistry,
+  CursorConfigurator,
+  ClaudeCodeConfigurator,
+  VSCodeConfigurator,
+  WindsurfConfigurator,
+  detectEditors,
+  sortByPreference,
+  formatDetectionSummary,
+  initializeEditorRegistry,
+  type ConfigureResult,
+  type ConfigureOptions,
+  type EditorDetectionResult,
+} from './configurators/index.js';
+
+// Re-export shell completions
+export {
+  generateCompletions,
+  getInstallInstructions,
+  getSupportedShells,
+  getGenerator,
+  getCommandDefinitions,
+  BashGenerator,
+  ZshGenerator,
+  FishGenerator,
+  type Shell,
+  type CompletionGenerator,
+  type CommandDef,
+} from './completions/index.js';
+
