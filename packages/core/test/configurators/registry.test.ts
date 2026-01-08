@@ -12,6 +12,9 @@ import {
   ClaudeCodeConfigurator,
   VSCodeConfigurator,
   WindsurfConfigurator,
+  QwenConfigurator,
+  GeminiConfigurator,
+  AntigravityConfigurator,
 } from '../../src/configurators/index.js';
 
 describe('EditorRegistry', () => {
@@ -25,6 +28,9 @@ describe('EditorRegistry', () => {
     EditorRegistry.register(new ClaudeCodeConfigurator());
     EditorRegistry.register(new VSCodeConfigurator());
     EditorRegistry.register(new WindsurfConfigurator());
+    EditorRegistry.register(new QwenConfigurator());
+    EditorRegistry.register(new GeminiConfigurator());
+    EditorRegistry.register(new AntigravityConfigurator());
   });
   
   describe('register', () => {
@@ -346,3 +352,200 @@ describe('WindsurfConfigurator', () => {
   });
 });
 
+describe('QwenConfigurator', () => {
+  let tempDir: string;
+  let qwen: QwenConfigurator;
+  
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'speclife-qwen-test-'));
+    qwen = new QwenConfigurator();
+    
+    // Create source commands directory
+    await mkdir(join(tempDir, 'openspec', 'commands', 'speclife'), { recursive: true });
+    await writeFile(join(tempDir, 'openspec', 'commands', 'speclife', 'start.md'), '# Start');
+    await writeFile(join(tempDir, 'openspec', 'commands', 'speclife', 'ship.md'), '# Ship');
+  });
+  
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+  
+  it('has correct metadata', () => {
+    expect(qwen.name).toBe('Qwen Code');
+    expect(qwen.id).toBe('qwen');
+    expect(qwen.configDir).toBe('.qwen');
+    expect(qwen.supportsDashPrefix).toBe(true);
+  });
+  
+  it('isAvailable returns true', async () => {
+    expect(await qwen.isAvailable(tempDir)).toBe(true);
+  });
+  
+  it('isConfigured returns false when not configured', async () => {
+    expect(await qwen.isConfigured(tempDir)).toBe(false);
+  });
+  
+  it('configure creates symlinks including dash-prefixed', async () => {
+    const result = await qwen.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    expect(result.success).toBe(true);
+    expect(result.filesModified.length).toBeGreaterThan(1); // Directory + dash-prefixed files
+  });
+  
+  it('isConfigured returns true after configure', async () => {
+    await qwen.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    expect(await qwen.isConfigured(tempDir)).toBe(true);
+  });
+  
+  it('unconfigure removes configuration', async () => {
+    await qwen.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    await qwen.unconfigure(tempDir);
+    
+    expect(await qwen.isConfigured(tempDir)).toBe(false);
+  });
+});
+
+describe('GeminiConfigurator', () => {
+  let tempDir: string;
+  let gemini: GeminiConfigurator;
+  
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'speclife-gemini-test-'));
+    gemini = new GeminiConfigurator();
+    
+    // Create source commands directory
+    await mkdir(join(tempDir, 'openspec', 'commands', 'speclife'), { recursive: true });
+    await writeFile(join(tempDir, 'openspec', 'commands', 'speclife', 'start.md'), '# Start');
+  });
+  
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+  
+  it('has correct metadata', () => {
+    expect(gemini.name).toBe('Gemini CLI');
+    expect(gemini.id).toBe('gemini');
+    expect(gemini.configDir).toBe('.gemini');
+    expect(gemini.supportsDashPrefix).toBe(false);
+  });
+  
+  it('isAvailable returns true', async () => {
+    expect(await gemini.isAvailable(tempDir)).toBe(true);
+  });
+  
+  it('configure creates directory symlink only (no dash prefix)', async () => {
+    const result = await gemini.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    expect(result.success).toBe(true);
+    // Should only create the speclife directory symlink, no dash-prefixed files
+    expect(result.filesModified.length).toBe(1);
+    expect(result.filesModified[0]).toContain('speclife');
+  });
+  
+  it('isConfigured returns true after configure', async () => {
+    await gemini.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    expect(await gemini.isConfigured(tempDir)).toBe(true);
+  });
+  
+  it('unconfigure removes configuration', async () => {
+    await gemini.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    await gemini.unconfigure(tempDir);
+    
+    expect(await gemini.isConfigured(tempDir)).toBe(false);
+  });
+});
+
+describe('AntigravityConfigurator', () => {
+  let tempDir: string;
+  let antigravity: AntigravityConfigurator;
+  
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'speclife-antigravity-test-'));
+    antigravity = new AntigravityConfigurator();
+    
+    // Create source commands directory
+    await mkdir(join(tempDir, 'openspec', 'commands', 'speclife'), { recursive: true });
+    await writeFile(join(tempDir, 'openspec', 'commands', 'speclife', 'start.md'), '# Start');
+  });
+  
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+  
+  it('has correct metadata', () => {
+    expect(antigravity.name).toBe('Antigravity');
+    expect(antigravity.id).toBe('antigravity');
+    expect(antigravity.configDir).toBe('.agent');
+    expect(antigravity.supportsDashPrefix).toBe(false);
+  });
+  
+  it('isAvailable returns true', async () => {
+    expect(await antigravity.isAvailable(tempDir)).toBe(true);
+  });
+  
+  it('uses workflows directory instead of commands', async () => {
+    const result = await antigravity.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    expect(result.success).toBe(true);
+    expect(result.filesModified[0]).toContain('workflows');
+    expect(result.filesModified[0]).not.toContain('commands');
+  });
+  
+  it('isConfigured checks workflows directory', async () => {
+    // Create the workflows directory manually
+    await mkdir(join(tempDir, '.agent', 'workflows', 'speclife'), { recursive: true });
+    
+    expect(await antigravity.isConfigured(tempDir)).toBe(true);
+  });
+  
+  it('configure creates symlinks in workflows directory', async () => {
+    const result = await antigravity.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    expect(result.success).toBe(true);
+    expect(result.filesModified.length).toBe(1);
+  });
+  
+  it('unconfigure removes configuration', async () => {
+    await antigravity.configure({
+      projectPath: tempDir,
+      specDir: 'openspec',
+    });
+    
+    await antigravity.unconfigure(tempDir);
+    
+    expect(await antigravity.isConfigured(tempDir)).toBe(false);
+  });
+  
+  it('getDetectionPaths returns agent directory', () => {
+    const paths = antigravity.getDetectionPaths();
+    expect(paths).toContain('.agent');
+  });
+});
