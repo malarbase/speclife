@@ -488,6 +488,7 @@ describe('AntigravityConfigurator', () => {
     // Create source commands directory
     await mkdir(join(tempDir, 'openspec', 'commands', 'speclife'), { recursive: true });
     await writeFile(join(tempDir, 'openspec', 'commands', 'speclife', 'start.md'), '# Start');
+    await writeFile(join(tempDir, 'openspec', 'commands', 'speclife', 'ship.md'), '# Ship');
   });
   
   afterEach(async () => {
@@ -505,32 +506,39 @@ describe('AntigravityConfigurator', () => {
     expect(await antigravity.isAvailable(tempDir)).toBe(true);
   });
   
-  it('uses workflows directory instead of commands', async () => {
+  it('isConfigured returns false when not configured', async () => {
+    expect(await antigravity.isConfigured(tempDir)).toBe(false);
+  });
+  
+  it('creates flat dash-prefixed files in workflows directory', async () => {
     const result = await antigravity.configure({
       projectPath: tempDir,
       specDir: 'openspec',
     });
     
     expect(result.success).toBe(true);
-    expect(result.filesModified[0]).toContain('workflows');
-    expect(result.filesModified[0]).not.toContain('commands');
+    // Should create speclife-start.md and speclife-ship.md
+    expect(result.filesModified.length).toBe(2);
+    expect(result.filesModified.some(f => f.includes('speclife-start.md'))).toBe(true);
+    expect(result.filesModified.some(f => f.includes('speclife-ship.md'))).toBe(true);
+    expect(result.filesModified.every(f => f.includes('workflows'))).toBe(true);
   });
   
-  it('isConfigured checks workflows directory', async () => {
-    // Create the workflows directory manually
-    await mkdir(join(tempDir, '.agent', 'workflows', 'speclife'), { recursive: true });
+  it('isConfigured checks for speclife-*.md files in workflows', async () => {
+    // Create a speclife-*.md file manually
+    await mkdir(join(tempDir, '.agent', 'workflows'), { recursive: true });
+    await writeFile(join(tempDir, '.agent', 'workflows', 'speclife-start.md'), '# Start');
     
     expect(await antigravity.isConfigured(tempDir)).toBe(true);
   });
   
-  it('configure creates symlinks in workflows directory', async () => {
-    const result = await antigravity.configure({
+  it('isConfigured returns true after configure', async () => {
+    await antigravity.configure({
       projectPath: tempDir,
       specDir: 'openspec',
     });
     
-    expect(result.success).toBe(true);
-    expect(result.filesModified.length).toBe(1);
+    expect(await antigravity.isConfigured(tempDir)).toBe(true);
   });
   
   it('unconfigure removes configuration', async () => {
@@ -547,5 +555,13 @@ describe('AntigravityConfigurator', () => {
   it('getDetectionPaths returns agent directory', () => {
     const paths = antigravity.getDetectionPaths();
     expect(paths).toContain('.agent');
+  });
+  
+  it('configure with force overwrites existing', async () => {
+    await antigravity.configure({ projectPath: tempDir, specDir: 'openspec' });
+    const result = await antigravity.configure({ projectPath: tempDir, specDir: 'openspec', force: true });
+    
+    expect(result.success).toBe(true);
+    expect(result.filesModified.length).toBe(2);
   });
 });
