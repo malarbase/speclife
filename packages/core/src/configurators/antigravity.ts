@@ -1,18 +1,18 @@
 /**
  * Antigravity editor configurator
- * AI-powered coding assistant using .agent directory
+ * Google's AI-powered IDE using .agent directory with flat workflow files
  */
 
-import { access, mkdir, symlink, unlink, lstat, readlink } from 'fs/promises';
+import { access, mkdir, symlink, unlink, lstat, readdir } from 'fs/promises';
 import { join } from 'path';
 import { EditorConfigurator, type ConfigureResult, type ConfigureOptions } from './base.js';
 
 export class AntigravityConfigurator extends EditorConfigurator {
   readonly name = 'Antigravity';
   readonly id = 'antigravity';
-  readonly description = 'AI-powered coding assistant';
+  readonly description = "Google's AI-powered IDE";
   readonly configDir = '.agent';
-  readonly supportsDashPrefix = false; // Uses workflows directory format
+  readonly supportsDashPrefix = false; // Dash-prefix IS the primary format, not secondary
   
   async isAvailable(_projectPath: string): Promise<boolean> {
     // Antigravity is always available as a supported editor
@@ -21,10 +21,10 @@ export class AntigravityConfigurator extends EditorConfigurator {
   
   async isConfigured(projectPath: string): Promise<boolean> {
     try {
-      // Note: Antigravity uses "workflows" instead of "commands"
-      const workflowsDir = join(projectPath, this.configDir, 'workflows', 'speclife');
-      await access(workflowsDir);
-      return true;
+      // Check if any speclife-*.md files exist in .agent/workflows/
+      const workflowsDir = join(projectPath, this.configDir, 'workflows');
+      const files = await readdir(workflowsDir);
+      return files.some(f => f.startsWith('speclife-') && f.endsWith('.md'));
     } catch {
       return false;
     }
@@ -40,42 +40,40 @@ export class AntigravityConfigurator extends EditorConfigurator {
     };
     
     const sourceDir = join(projectPath, specDir, 'commands', 'speclife');
-    // Note: Antigravity uses "workflows" instead of "commands"
-    const editorWorkflowsBase = join(projectPath, this.configDir, 'workflows');
-    const editorWorkflowsDir = join(editorWorkflowsBase, 'speclife');
+    // Antigravity uses flat files: .agent/workflows/speclife-<cmd>.md
+    const workflowsDir = join(projectPath, this.configDir, 'workflows');
     
     try {
-      // Ensure editor workflows directory exists
-      await mkdir(editorWorkflowsBase, { recursive: true });
+      // Ensure workflows directory exists
+      await mkdir(workflowsDir, { recursive: true });
       
-      // Create symlink for speclife/ directory
-      try {
-        const stats = await lstat(editorWorkflowsDir);
-        if (stats.isSymbolicLink()) {
+      // Discover available commands
+      const commands = await this.discoverCommands(sourceDir);
+      
+      // Create individual symlinks for each command
+      for (const cmd of commands) {
+        const dashFile = join(workflowsDir, `speclife-${cmd}.md`);
+        const targetFile = join(sourceDir, `${cmd}.md`);
+        
+        try {
+          await access(dashFile);
           if (force) {
-            await unlink(editorWorkflowsDir);
-            await symlink(sourceDir, editorWorkflowsDir);
-            result.filesModified.push(editorWorkflowsDir);
+            await unlink(dashFile);
+            await symlink(targetFile, dashFile);
+            result.filesModified.push(dashFile);
           } else {
-            // Check if symlink points to correct location
-            const target = await readlink(editorWorkflowsDir);
-            if (target !== sourceDir) {
-              result.warnings.push(`Existing symlink points to ${target}, not ${sourceDir}`);
-            }
-            result.filesSkipped.push(editorWorkflowsDir);
+            result.filesSkipped.push(dashFile);
           }
-        } else {
-          result.warnings.push(`${editorWorkflowsDir} exists but is not a symlink`);
-          result.filesSkipped.push(editorWorkflowsDir);
+        } catch {
+          // File doesn't exist, create symlink
+          try {
+            await symlink(targetFile, dashFile);
+            result.filesModified.push(dashFile);
+          } catch (err) {
+            result.warnings.push(`Failed to create ${dashFile}: ${err}`);
+          }
         }
-      } catch {
-        // Symlink doesn't exist, create it
-        await symlink(sourceDir, editorWorkflowsDir);
-        result.filesModified.push(editorWorkflowsDir);
       }
-      
-      // Antigravity doesn't use dash-prefixed symlinks
-      
     } catch (err) {
       result.success = false;
       result.warnings.push(`Configuration failed: ${err}`);
@@ -85,12 +83,19 @@ export class AntigravityConfigurator extends EditorConfigurator {
   }
   
   async unconfigure(projectPath: string): Promise<void> {
-    const editorWorkflowsDir = join(projectPath, this.configDir, 'workflows', 'speclife');
+    const workflowsDir = join(projectPath, this.configDir, 'workflows');
     
     try {
-      const stats = await lstat(editorWorkflowsDir);
-      if (stats.isSymbolicLink()) {
-        await unlink(editorWorkflowsDir);
+      // Remove all speclife-*.md symlinks
+      const files = await readdir(workflowsDir);
+      for (const file of files) {
+        if (file.startsWith('speclife-') && file.endsWith('.md')) {
+          const filePath = join(workflowsDir, file);
+          const stats = await lstat(filePath);
+          if (stats.isSymbolicLink()) {
+            await unlink(filePath);
+          }
+        }
       }
     } catch {
       // Ignore errors during cleanup
@@ -99,9 +104,19 @@ export class AntigravityConfigurator extends EditorConfigurator {
   
   /**
    * Override detection paths for Antigravity
-   * Uses "workflows" instead of "commands"
    */
   override getDetectionPaths(): string[] {
     return [this.configDir, join(this.configDir, 'workflows')];
+  }
+  
+  private async discoverCommands(sourceDir: string): Promise<string[]> {
+    try {
+      const files = await readdir(sourceDir);
+      return files
+        .filter(f => f.endsWith('.md'))
+        .map(f => f.replace('.md', ''));
+    } catch {
+      return [];
+    }
   }
 }
