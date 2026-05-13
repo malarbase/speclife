@@ -1,0 +1,1 @@
+/var/home/user/Work/speclife/openspec/commands/speclife/setup.md
