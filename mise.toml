@@ -1,0 +1,233 @@
+# mise configuration for SpecLife
+# https://mise.jdx.dev
+#
+# Quick start:
+#   mise install          # Install tools (node, npm)
+#   mise run build        # Build all packages
+#   mise tasks            # List all available tasks
+
+[tools]
+node = "20"
+npm = "10"
+
+# ===============================
+# Core Development
+# ===============================
+
+[tasks.install]
+description = "Install all dependencies"
+run = "npm install"
+
+[tasks.build]
+description = "Build all packages (core → cli → mcp-server)"
+run = "npm run build --workspaces"
+
+[tasks."build:core"]
+description = "Build @speclife/core"
+run = "npm run build -w packages/core"
+
+[tasks."build:cli"]
+description = "Build @speclife/cli"
+depends = ["build:core"]
+run = "npm run build -w packages/cli"
+
+[tasks."build:mcp"]
+description = "Build @speclife/mcp-server"
+depends = ["build:core"]
+run = "npm run build -w packages/mcp-server"
+
+[tasks.clean]
+description = "Clean all build artifacts"
+run = "npm run clean"
+
+[tasks.typecheck]
+description = "Type-check all packages"
+run = "npm run typecheck"
+
+[tasks.lint]
+description = "Lint all source files"
+run = "npm run lint"
+
+# ===============================
+# Testing
+# ===============================
+
+[tasks.test]
+description = "Run all tests"
+run = "npm run test --workspaces --if-present"
+
+[tasks."test:core"]
+description = "Run @speclife/core tests"
+run = "npm run test -w packages/core"
+
+[tasks."test:cli"]
+description = "Run @speclife/cli tests"
+run = "npm run test -w packages/cli"
+
+[tasks."test:mcp"]
+description = "Run @speclife/mcp-server tests"
+run = "npm run test -w packages/mcp-server"
+
+[tasks."test:watch"]
+description = "Run @speclife/core tests in watch mode"
+run = "npm run test:watch -w packages/core"
+
+# ===============================
+# CLI (local development)
+# ===============================
+
+[tasks.cli]
+description = "Run the SpecLife CLI locally (pass args via CLI_ARGS)"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js $CLI_ARGS"
+
+[tasks."cli:setup"]
+description = "Run speclife setup"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js setup"
+
+[tasks."cli:start"]
+description = "Run speclife start"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js start"
+
+[tasks."cli:implement"]
+description = "Run speclife implement"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js implement"
+
+[tasks."cli:ship"]
+description = "Run speclife ship"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js ship"
+
+[tasks."cli:land"]
+description = "Run speclife land"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js land"
+
+[tasks."cli:release"]
+description = "Run speclife release"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js release"
+
+[tasks."cli:convert"]
+description = "Run speclife convert"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js convert"
+
+[tasks."cli:retrofit"]
+description = "Run speclife retrofit"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js retrofit"
+
+[tasks."cli:sync"]
+description = "Run speclife sync"
+depends = ["build:cli"]
+run = "node packages/cli/dist/index.js sync"
+
+# ===============================
+# MCP Server
+# ===============================
+
+[tasks.mcp]
+description = "Start the MCP server (requires build)"
+depends = ["build:mcp"]
+run = "node packages/mcp-server/dist/index.js"
+
+[tasks."mcp:dev"]
+description = "Build core + mcp-server and start MCP server"
+run = "npm run mcp:dev"
+
+# ===============================
+# Watch / Dev Mode
+# ===============================
+
+[tasks.dev]
+description = "Build core + cli and watch for changes"
+run = """
+npm run build -w packages/core &
+npm run dev -w packages/cli &
+wait
+"""
+
+[tasks."dev:core"]
+description = "Watch @speclife/core for changes"
+run = "npm run dev -w packages/core"
+
+[tasks."dev:cli"]
+description = "Watch @speclife/cli for changes"
+run = "npm run dev -w packages/cli"
+
+[tasks."dev:mcp"]
+description = "Watch @speclife/mcp-server for changes"
+run = "npm run dev -w packages/mcp-server"
+
+# ===============================
+# Release & Publishing
+# ===============================
+
+[tasks.version]
+description = "Show current version"
+run = "node -p \"require('./package.json').version\""
+
+[tasks."publish:dry"]
+description = "Dry-run npm publish for all packages"
+run = """
+npm publish -w packages/core --dry-run
+npm publish -w packages/cli --dry-run
+npm publish -w packages/mcp-server --dry-run
+"""
+
+# ===============================
+# Utilities
+# ===============================
+
+[tasks.rebuild]
+description = "Full rebuild: clean + install + build"
+depends = ["clean", "install", "build"]
+
+[tasks.ci]
+description = "Run the full CI check suite (typecheck + lint + test)"
+depends = ["typecheck", "lint", "test"]
+
+[tasks.help]
+description = "Show available tasks and usage"
+run = """
+echo "SpecLife - Available tasks:"
+echo ""
+mise tasks
+echo ""
+echo "Quick Start:"
+echo "  mise install              # Install node + npm + dependencies"
+echo "  mise run build            # Build all packages"
+echo "  mise run cli -- --help    # Run the CLI locally"
+echo ""
+echo "Development:"
+echo "  mise run dev              # Watch core + cli"
+echo "  mise run dev:core         # Watch core only"
+echo "  mise run dev:cli          # Watch cli only"
+echo "  mise run dev:mcp          # Watch mcp-server only"
+echo ""
+echo "Testing:"
+echo "  mise run test             # Run all tests"
+echo "  mise run test:watch       # Run core tests in watch mode"
+echo ""
+echo "CLI Commands (local):"
+echo "  mise run cli:setup        # speclife setup"
+echo "  mise run cli:start        # speclife start"
+echo "  mise run cli:implement    # speclife implement"
+echo "  mise run cli:ship         # speclife ship"
+echo "  mise run cli:land         # speclife land"
+echo "  mise run cli:release      # speclife release"
+echo "  mise run cli -- <args>    # Pass arbitrary args to CLI"
+echo ""
+echo "MCP Server:"
+echo "  mise run mcp              # Start MCP server"
+echo "  mise run mcp:dev          # Build + start MCP server"
+echo ""
+echo "Maintenance:"
+echo "  mise run clean            # Remove dist folders"
+echo "  mise run rebuild          # Full clean + install + build"
+echo "  mise run ci               # Run typecheck + lint + test"
+"""
