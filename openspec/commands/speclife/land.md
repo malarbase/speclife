@@ -17,7 +17,9 @@ description: Merge an approved PR, clean up, and trigger auto-release.
 5. Bump version in feature branch: for npm workspaces use `npm version <bump> -ws --no-git-tag-version --workspaces-update=false` to bump all packages, then commit `chore(release): v<version>`, push.
 6. Squash merge: `gh pr merge --squash --delete-branch`.
 7. Update local: `git checkout main && git pull`.
-8. Cleanup: remove worktree if spec branch (`speclife worktree rm <id>`), else delete local branch.
+8. Cleanup:
+   - If worktree exists: `git worktree remove worktrees/<id>` then `git branch -d spec/<id>`
+   - Else: `git branch -d spec/<id>`
 9. Report: version bumped, PR merged, cleanup done, GitHub Actions creating release.
 
 **Reference**
