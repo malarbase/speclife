@@ -13,7 +13,9 @@ description: Create a release with version bump (typically for major versions).
 1. Check branch: must be on `main`; error otherwise.
 2. Analyze commits since last tag: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE` or `!` → major; use explicit flag (--major/--minor/--patch) if provided.
 3. Calculate new version from current `package.json`.
-4. Update version: `npm version <bump> --no-git-tag-version` (and workspaces if monorepo).
+4. Update version in root and all workspace packages:
+   - Root: `npm version <bump> --no-git-tag-version`
+   - Workspaces: `cd packages/<name> && npm version <new-version> --no-git-tag-version` for each workspace
 5. Update CHANGELOG.md with grouped commits.
 6. Commit: `git commit -am "chore(release): v<version>"`.
 7. Push: `git push origin main`.
@@ -22,3 +24,4 @@ description: Create a release with version bump (typically for major versions).
 **Reference**
 - Commit message format `chore(release): vX.X.X` triggers release workflow
 - Major releases should use this command; patch/minor typically via `/speclife land`
+- In monorepos, always bump workspace package versions alongside root
