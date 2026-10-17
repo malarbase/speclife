@@ -7,8 +7,16 @@
 #   mise tasks            # List all available tasks
 
 [tools]
-node = "20"
-npm = "10"
+# Both were ranges, not pins: `node = "20"` resolved to v20.20.2 and
+# `npm = "10"` to 10.8.2, so "20" meant whichever 20.x was newest at
+# install time and moved on every release. They are exact now and checked by
+# running the tool: node v20.20.2, npm 10.8.2.
+#
+# The same caveat as elsewhere applies — npm is resolved from the node
+# install when that directory comes first on PATH, so if the two disagree
+# later, check the install directory before editing this file.
+"core:node" = "20.20.2"
+"core:npm" = "10.8.2"
 
 # ===============================
 # Core Development
